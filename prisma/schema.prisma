@@ -1,0 +1,270 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserStatus {
+  active
+  banned
+}
+
+enum UserRole {
+  user
+  admin
+}
+
+model User {
+  id          String     @id @default(cuid())
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+  status      UserStatus @default(active)
+  displayName String?    @map("display_name")
+  role        UserRole   @default(user)
+
+  socialAccounts   SocialAccount[]
+  tweets           Tweet[]
+  userDailyScores  UserDailyScore[]
+  quotaIssuances   QuotaIssuance[]
+  quotaLedger      QuotaLedgerEntry[]
+  creatorDailyStats CreatorDailyStat[]
+
+  @@map("users")
+}
+
+model SocialAccount {
+  id                  String   @id @default(cuid())
+  userId              String   @map("user_id")
+  provider            String   @default("x")
+  providerUserId      String   @map("provider_user_id")
+  username            String
+  name                String?
+  avatarUrl           String?  @map("avatar_url")
+  accessTokenEncrypted String? @map("access_token_encrypted")
+  refreshTokenEncrypted String? @map("refresh_token_encrypted")
+  tokenExpiresAt      DateTime? @map("token_expires_at")
+  accountCreatedAt    DateTime? @map("account_created_at")
+  verified            Boolean  @default(false)
+  followersCount      Int      @default(0) @map("followers_count")
+  followingCount      Int      @default(0) @map("following_count")
+  tweetCount          Int      @default(0) @map("tweet_count")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([provider, providerUserId])
+  @@map("social_accounts")
+}
+
+enum TweetStatus {
+  captured
+  eligible
+  ready_to_score
+  scored
+  rejected
+  settled
+}
+
+model Tweet {
+  id              String      @id @default(cuid())
+  tweetId         String      @unique @map("tweet_id")
+  userId          String?     @map("user_id")
+  authorXUserId   String      @map("author_x_user_id")
+  authorUsername  String?     @map("author_username")
+  authorName      String?     @map("author_name")
+  authorAvatarUrl String?     @map("author_avatar_url")
+  text            String
+  lang            String?
+  conversationId  String?     @map("conversation_id")
+  createdAtX      DateTime    @map("created_at_x")
+  capturedAt      DateTime    @default(now()) @map("captured_at")
+  status          TweetStatus @default(captured)
+  hasMedia        Boolean     @default(false) @map("has_media")
+  isQuote         Boolean     @default(false) @map("is_quote")
+  isReply         Boolean     @default(false) @map("is_reply")
+  isRetweet       Boolean     @default(false) @map("is_retweet")
+  querySource     String?     @map("query_source")
+
+  user            User?       @relation(fields: [userId], references: [id])
+  metricSnapshots TweetMetricSnapshot[]
+  score           TweetScore?
+
+  @@map("tweets")
+}
+
+enum SnapshotType {
+  capture
+  scoring
+}
+
+model TweetMetricSnapshot {
+  id           String       @id @default(cuid())
+  tweetId      String       @map("tweet_id")
+  snapshotType SnapshotType @map("snapshot_type")
+  likeCount    Int          @default(0) @map("like_count")
+  replyCount   Int          @default(0) @map("reply_count")
+  retweetCount Int          @default(0) @map("retweet_count")
+  quoteCount   Int          @default(0) @map("quote_count")
+  capturedAt   DateTime     @default(now()) @map("captured_at")
+
+  tweet Tweet @relation(fields: [tweetId], references: [id])
+
+  @@map("tweet_metric_snapshots")
+}
+
+enum RiskLevel {
+  none
+  low
+  medium
+  high
+}
+
+model TweetScore {
+  id               String    @id @default(cuid())
+  tweetId          String    @unique @map("tweet_id")
+  qualityScore     Float     @default(0) @map("quality_score")
+  engagementScore  Float     @default(0) @map("engagement_score")
+  trustMultiplier  Float     @default(1) @map("trust_multiplier")
+  finalScore       Float     @default(0) @map("final_score")
+  riskLevel        RiskLevel @default(none) @map("risk_level")
+  riskReasons      Json?     @map("risk_reasons")
+  similarityHash   String?   @map("similarity_hash")
+  scoredAt         DateTime  @default(now()) @map("scored_at")
+  scoringVersion   String    @default("v1") @map("scoring_version")
+  isPublic         Boolean   @default(true) @map("is_public")
+  relevanceSubscore  Float?  @map("relevance_subscore")
+  originalitySubscore Float? @map("originality_subscore")
+  formatSubscore     Float?  @map("format_subscore")
+
+  tweet Tweet @relation(fields: [tweetId], references: [id])
+
+  @@map("tweet_scores")
+}
+
+model UserDailyScore {
+  id                  String   @id @default(cuid())
+  userId              String   @map("user_id")
+  scoreDate           DateTime @map("score_date") @db.Date
+  tweetCountEligible  Int      @default(0) @map("tweet_count_eligible")
+  tweetIds            Json?    @map("tweet_ids")
+  score1              Float?   @map("score_1")
+  score2              Float?   @map("score_2")
+  score3              Float?   @map("score_3")
+  finalUserScore      Float    @default(0) @map("final_user_score")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, scoreDate])
+  @@map("user_daily_scores")
+}
+
+enum PoolStatus {
+  open
+  settled
+  empty
+}
+
+model DailyQuotaPool {
+  id          String     @id @default(cuid())
+  poolDate    DateTime   @unique @map("pool_date") @db.Date
+  quotaAmount Float      @map("quota_amount")
+  totalScore  Float      @default(0) @map("total_score")
+  status      PoolStatus @default(open)
+
+  @@map("daily_quota_pools")
+}
+
+model QuotaIssuance {
+  id                String   @id @default(cuid())
+  userId            String   @map("user_id")
+  poolDate          DateTime @map("pool_date") @db.Date
+  issuanceWeekStart DateTime @map("issuance_week_start") @db.Date
+  expiresAt         DateTime @map("expires_at")
+  quotaAmount       Float    @map("quota_amount")
+  sourceUserScore   Float    @map("source_user_score")
+  sourceTotalScore  Float    @map("source_total_score")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, poolDate])
+  @@map("quota_issuances")
+}
+
+enum LedgerEntryType {
+  issue
+  consume
+  expire
+  admin_adjust
+}
+
+model QuotaLedgerEntry {
+  id            String          @id @default(cuid())
+  userId        String          @map("user_id")
+  entryType     LedgerEntryType @map("entry_type")
+  amount        Float
+  balanceAfter  Float           @map("balance_after")
+  referenceType String?         @map("reference_type")
+  referenceId   String?         @map("reference_id")
+  createdAt     DateTime        @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("quota_ledger")
+}
+
+model CreatorDailyStat {
+  id               String   @id @default(cuid())
+  userId           String   @map("user_id")
+  statDate         DateTime @map("stat_date") @db.Date
+  rank             Int      @default(0)
+  indexScore       Float    @default(0) @map("index_score")
+  mindsharePercent Float    @default(0) @map("mindshare_percent")
+  dailyReward      Float    @default(0) @map("daily_reward")
+  dailyRewardDelta Float    @default(0) @map("daily_reward_delta")
+  totalReward      Float    @default(0) @map("total_reward")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, statDate])
+  @@map("creator_daily_stats")
+}
+
+enum ModerationTargetType {
+  user
+  tweet
+}
+
+model ModerationAction {
+  id         String               @id @default(cuid())
+  targetType ModerationTargetType @map("target_type")
+  targetId   String               @map("target_id")
+  actionType String               @map("action_type")
+  reason     String?
+  createdBy  String               @map("created_by")
+  createdAt  DateTime             @default(now()) @map("created_at")
+
+  @@map("moderation_actions")
+}
+
+model JobRun {
+  id        String    @id @default(cuid())
+  jobName   String    @map("job_name")
+  status    String    @default("running")
+  startedAt DateTime  @default(now()) @map("started_at")
+  endedAt   DateTime? @map("ended_at")
+  result    Json?
+  error     String?
+
+  @@map("job_runs")
+}
+
+model AppConfig {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("app_config")
+}

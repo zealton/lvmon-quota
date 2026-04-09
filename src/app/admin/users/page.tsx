@@ -1,0 +1,129 @@
+"use client";
+
+import { Header } from "@/components/header";
+import { useEffect, useState } from "react";
+
+interface AdminUser {
+  id: string;
+  status: string;
+  role: string;
+  displayName: string | null;
+  createdAt: string;
+  social: {
+    username: string;
+    name: string;
+    avatarUrl: string | null;
+    followersCount: number;
+    accountCreatedAt: string | null;
+  } | null;
+  tweetCount: number;
+}
+
+export default function AdminUsersPage() {
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  const fetchUsers = () => {
+    fetch(`/api/admin/users?page=${page}&limit=50`)
+      .then((r) => r.json())
+      .then((data) => {
+        setUsers(data.items || []);
+        setTotalPages(data.pagination?.totalPages || 1);
+      });
+  };
+
+  useEffect(() => { fetchUsers(); }, [page]);
+
+  const toggleBan = async (id: string, currentStatus: string) => {
+    const ban = currentStatus !== "banned";
+    const reason = ban ? prompt("Ban reason:") : "unbanned";
+    if (reason === null) return;
+    await fetch(`/api/admin/users/${id}/ban`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ban, reason }),
+    });
+    fetchUsers();
+  };
+
+  const setTrust = async (id: string) => {
+    const val = prompt("Trust multiplier (0, 0.5, 0.75, 1.0):");
+    if (!val) return;
+    const reason = prompt("Reason:");
+    await fetch(`/api/admin/users/${id}/trust`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ trustMultiplier: parseFloat(val), reason }),
+    });
+    alert("Updated");
+  };
+
+  return (
+    <>
+      <Header />
+      <main className="max-w-7xl mx-auto px-4 py-8">
+        <h1 className="text-2xl font-bold mb-6">User Management</h1>
+
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-xs text-gray-500 border-b border-gray-800">
+              <th className="text-left py-2">User</th>
+              <th className="text-left py-2">Status</th>
+              <th className="text-right py-2">Followers</th>
+              <th className="text-right py-2">Tweets</th>
+              <th className="text-right py-2">Joined</th>
+              <th className="text-right py-2">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {users.map((u) => (
+              <tr key={u.id} className="border-b border-gray-800/50">
+                <td className="py-2">
+                  <div className="flex items-center gap-2">
+                    {u.social?.avatarUrl && (
+                      <img src={u.social.avatarUrl} alt="" className="w-6 h-6 rounded-full" />
+                    )}
+                    <div>
+                      <div className="font-medium">{u.social?.name || u.displayName}</div>
+                      <div className="text-xs text-gray-500">@{u.social?.username || "?"}</div>
+                    </div>
+                  </div>
+                </td>
+                <td className="py-2">
+                  <span className={`px-2 py-0.5 rounded text-xs ${
+                    u.status === "banned" ? "bg-red-900/30 text-red-400" : "bg-green-900/30 text-green-400"
+                  }`}>
+                    {u.status}
+                  </span>
+                </td>
+                <td className="py-2 text-right">{u.social?.followersCount?.toLocaleString() || 0}</td>
+                <td className="py-2 text-right">{u.tweetCount}</td>
+                <td className="py-2 text-right text-gray-400 text-xs">{new Date(u.createdAt).toLocaleDateString()}</td>
+                <td className="py-2 text-right space-x-2">
+                  <button
+                    onClick={() => toggleBan(u.id, u.status)}
+                    className={`text-xs ${u.status === "banned" ? "text-green-400" : "text-red-400"}`}
+                  >
+                    {u.status === "banned" ? "Unban" : "Ban"}
+                  </button>
+                  <button onClick={() => setTrust(u.id)} className="text-xs text-orange-400">
+                    Trust
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2 mt-4">
+            <button onClick={() => setPage(Math.max(1, page - 1))} disabled={page === 1} className="px-3 py-1 text-sm bg-gray-800 rounded disabled:opacity-50">Prev</button>
+            <span className="text-sm text-gray-400">{page} / {totalPages}</span>
+            <button onClick={() => setPage(Math.min(totalPages, page + 1))} disabled={page === totalPages} className="px-3 py-1 text-sm bg-gray-800 rounded disabled:opacity-50">Next</button>
+          </div>
+        )}
+      </main>
+    </>
+  );
+}
