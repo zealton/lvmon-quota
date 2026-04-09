@@ -76,8 +76,8 @@ export async function runTweetIngest() {
         quote_count: 0,
       };
 
-      // Determine initial status
-      let status: "captured" | "eligible" | "rejected" = "captured";
+      // Determine initial status — all tweets passing hard filters go to eligible
+      let status: "captured" | "eligible" | "rejected" = "eligible";
 
       // Apply hard filters
       const handleLower = `@${handle}`.toLowerCase();
@@ -87,8 +87,6 @@ export async function runTweetIngest() {
         status = "rejected";
       } else if (!tweet.text.toLowerCase().includes(handleLower)) {
         status = "rejected";
-      } else if (userId) {
-        status = "eligible";
       }
 
       await prisma.tweet.create({
