@@ -40,13 +40,15 @@ const GROUP_DESCRIPTIONS: Record<string, { desc: string; formula?: string; rules
     formula: "user_quota = daily_pool × (user_score / total_score)",
   },
   Scoring: {
-    desc: "推文评分与用户每日得分计算规则。每条推文在观察窗口结束后评分一次，同一条不会重复参与多日分配。",
-    formula: "user_daily_score = s1 × w1 + s2 × w2 + s3 × w3",
+    desc: "推文评分与用户每日得分计算规则。每条推文在「Observation Window」结束后评分一次，同一条不会重复参与多日分配。",
+    formula: "user_daily_score = score_1st × Weight#1 + score_2nd × Weight#2 + score_3rd × Weight#3",
     rules: [
-      "每个用户每天最多 N 条推文参与计分（取分数最高的 top N）",
-      "tweet_score = trust_multiplier × (quality_score + engagement_score)，最终分数上限 100",
-      "quality_score (0~40): LLM 评分 = relevance(0~15) + originality(0~15) + format(0~10)",
-      "Weight #1/#2/#3 是递减权重，用来抑制同一用户的多推文刷分",
+      "Observation Window: 推文发布后等待 N 小时再评分，让互动数据充分积累",
+      "Max Tweets Per User Per Day: 每个用户每天最多 N 条推文参与计分（取分数最高的 top N）",
+      "score_1st / score_2nd / score_3rd = 该用户当天分数最高的第1/2/3条推文的 tweet_score",
+      "Weight #1 / #2 / #3: 对应第1/2/3条推文的递减权重，抑制同一用户多推文刷分（默认 1.0 / 0.5 / 0.25）",
+      "tweet_score = trust_multiplier × (quality_score + engagement_score)，上限 100",
+      "quality_score (0~40): GPT-4o-mini 评分 = relevance(0~15) + originality(0~15) + format(0~10)",
     ],
   },
   "Anti-spam": {
