@@ -1,7 +1,11 @@
 import OpenAI from "openai";
 import { getConfig } from "./config";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+let _openai: OpenAI | null = null;
+function getOpenAI() {
+  if (!_openai) _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  return _openai;
+}
 
 export interface QualityScoreResult {
   relevanceSubscore: number;
@@ -12,7 +16,7 @@ export interface QualityScoreResult {
 
 export async function scoreQuality(text: string, hasMedia: boolean): Promise<QualityScoreResult> {
   try {
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: "gpt-4o-mini",
       temperature: 0.1,
       response_format: { type: "json_object" },
