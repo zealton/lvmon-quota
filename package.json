@@ -13,7 +13,8 @@
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
     "worker": "tsx worker.ts",
-    "test": "DATABASE_URL=postgresql://lark@localhost:5432/lvmon_quota_test?schema=public jest --verbose --forceExit"
+    "test": "jest --verbose --forceExit",
+    "test:local": "DATABASE_URL=postgresql://lark@localhost:5432/lvmon_quota_test?schema=public jest --verbose --forceExit"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
@@ -46,6 +47,7 @@
     "eslint-config-next": "^16.2.3",
     "jest": "^30.3.0",
     "ts-jest": "^29.4.9",
+    "ts-node": "^10.9.2",
     "tsx": "^4.21.0"
   }
 }
