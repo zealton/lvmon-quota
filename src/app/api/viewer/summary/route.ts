@@ -50,6 +50,7 @@ export async function GET() {
     username: socialAccount?.username,
     displayName: socialAccount?.name || user.displayName,
     avatarUrl: socialAccount?.avatarUrl,
+    walletAddress: user.walletAddress,
     role: user.role,
     status: user.status,
     currentBalance: balance?.balanceAfter || 0,

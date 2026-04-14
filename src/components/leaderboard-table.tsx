@@ -45,7 +45,7 @@ export function LeaderboardTable() {
     return (
       <div className="animate-pulse space-y-3">
         {Array.from({ length: 10 }).map((_, i) => (
-          <div key={i} className="h-14 bg-gray-800 rounded-lg" />
+          <div key={i} className="h-14 bg-surface-elevated rounded-xl" />
         ))}
       </div>
     );
@@ -53,7 +53,7 @@ export function LeaderboardTable() {
 
   if (!data || data.items.length === 0) {
     return (
-      <div className="text-center py-12 text-gray-500">
+      <div className="text-center py-12 text-text-tertiary">
         <p className="text-lg">No leaderboard data yet</p>
         <p className="text-sm mt-1">Be the first to post about @LeverUp_xyz on X!</p>
       </div>
@@ -63,9 +63,9 @@ export function LeaderboardTable() {
   return (
     <div>
       {data.pool && (
-        <div className="flex items-center gap-4 mb-4 text-sm text-gray-400">
+        <div className="flex items-center gap-4 mb-4 text-sm text-text-tertiary">
           <span>Date: {data.date}</span>
-          <span>Pool: {data.pool.quotaAmount.toLocaleString()} LVMON</span>
+          <span>Pool: <span className="text-brand font-medium">{data.pool.quotaAmount.toLocaleString()} LVMON</span></span>
           <span>Status: {data.pool.status}</span>
           <span>Participants: {data.pagination.total}</span>
         </div>
@@ -74,7 +74,7 @@ export function LeaderboardTable() {
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="text-xs text-gray-500 uppercase tracking-wider border-b border-gray-800">
+            <tr className="text-xs text-text-tertiary uppercase tracking-wider border-b border-border">
               <th className="text-left py-3 px-4">#</th>
               <th className="text-left py-3 px-4">Account</th>
               <th className="text-right py-3 px-4">Index</th>
@@ -89,18 +89,16 @@ export function LeaderboardTable() {
               return (
                 <tr
                   key={item.userId}
-                  className={`border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors ${
-                    isCurrentUser
-                      ? "bg-purple-900/20 border-purple-500/30"
-                      : ""
+                  className={`border-b border-border hover:bg-surface-elevated/50 transition-colors ${
+                    isCurrentUser ? "bg-brand/5" : ""
                   }`}
                 >
                   <td className="py-3 px-4">
                     <span
                       className={`font-mono text-sm ${
                         item.rank <= 3
-                          ? "text-yellow-400 font-bold"
-                          : "text-gray-500"
+                          ? "text-accent-yellow font-bold"
+                          : "text-text-tertiary"
                       }`}
                     >
                       {item.rank}
@@ -118,27 +116,27 @@ export function LeaderboardTable() {
                           className="w-8 h-8 rounded-full"
                         />
                       ) : (
-                        <div className="w-8 h-8 rounded-full bg-gray-700" />
+                        <div className="w-8 h-8 rounded-full bg-surface-secondary" />
                       )}
                       <div>
                         <div className="font-medium text-sm">
                           {item.displayName}
                           {isCurrentUser && (
-                            <span className="ml-1 text-xs text-purple-400">(You)</span>
+                            <span className="ml-1 text-xs text-brand">(You)</span>
                           )}
                         </div>
-                        <div className="text-xs text-gray-500">@{item.username}</div>
+                        <div className="text-xs text-text-tertiary">@{item.username}</div>
                       </div>
                     </Link>
                   </td>
                   <td className="py-3 px-4 text-right font-mono text-sm">
                     {item.indexScore.toFixed(1)}
                   </td>
-                  <td className="py-3 px-4 text-right font-mono text-sm text-cyan-400">
+                  <td className="py-3 px-4 text-right font-mono text-sm text-accent-cyan">
                     {item.mindsharePercent}%
                   </td>
                   <td className="py-3 px-4 text-right">
-                    <span className="font-mono text-sm text-green-400">
+                    <span className="font-mono text-sm text-accent-green">
                       +{item.dailyReward.toLocaleString()}
                     </span>
                   </td>
@@ -157,17 +155,17 @@ export function LeaderboardTable() {
           <button
             onClick={() => setPage(Math.max(1, page - 1))}
             disabled={page === 1}
-            className="px-3 py-1 text-sm bg-gray-800 rounded disabled:opacity-50"
+            className="px-4 py-1.5 text-sm bg-surface-secondary hover:bg-surface-elevated rounded-[56px] disabled:opacity-50 transition-colors"
           >
             Prev
           </button>
-          <span className="text-sm text-gray-400">
+          <span className="text-sm text-text-tertiary">
             {page} / {data.pagination.totalPages}
           </span>
           <button
             onClick={() => setPage(Math.min(data.pagination.totalPages, page + 1))}
             disabled={page === data.pagination.totalPages}
-            className="px-3 py-1 text-sm bg-gray-800 rounded disabled:opacity-50"
+            className="px-4 py-1.5 text-sm bg-surface-secondary hover:bg-surface-elevated rounded-[56px] disabled:opacity-50 transition-colors"
           >
             Next
           </button>

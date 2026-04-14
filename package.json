@@ -12,6 +12,7 @@
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
+    "worker": "tsx worker.ts",
     "test": "DATABASE_URL=postgresql://lark@localhost:5432/lvmon_quota_test?schema=public jest --verbose --forceExit"
   },
   "dependencies": {

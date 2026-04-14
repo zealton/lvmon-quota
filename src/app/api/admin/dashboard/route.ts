@@ -39,6 +39,7 @@ export async function GET() {
       search_handle: config.search_handle,
       max_search_results: config.max_search_results,
       daily_quota_pool: config.daily_quota_pool,
+      tweet_observation_window_hours: config.tweet_observation_window_hours,
     },
     recentPools: recentPools.map((p) => ({
       date: p.poolDate,

@@ -14,20 +14,27 @@ export async function runDailySettlement(targetDate?: Date) {
   try {
     const config = await getConfig();
     const now = toZonedTime(new Date(), TZ);
-    const settleDate = targetDate || startOfDay(subDays(now, 1));
+    const epochMs = config.epoch_duration_hours * 60 * 60 * 1000;
+
+    // Calculate the previous epoch's time range
+    // Current epoch start = floor(now / epochDuration) * epochDuration
+    const cstOffset = 8 * 60 * 60 * 1000;
+    const nowMs = new Date().getTime() + cstOffset;
+    const currentEpochStartCST = Math.floor(nowMs / epochMs) * epochMs;
+    const prevEpochStartCST = currentEpochStartCST - epochMs;
+    const settleDate = targetDate || new Date(prevEpochStartCST - cstOffset);
 
     // Check if already settled
     const existingPool = await prisma.dailyQuotaPool.findUnique({
       where: { poolDate: settleDate },
     });
     if (existingPool?.status === "settled") {
-      // Allow re-settlement by deleting old pool
       await prisma.dailyQuotaPool.delete({ where: { poolDate: settleDate } });
     }
 
-    // Get scored tweets from the settlement date
+    // Get scored tweets from the settlement epoch
     const dayStart = settleDate;
-    const dayEnd = new Date(settleDate.getTime() + 24 * 60 * 60 * 1000);
+    const dayEnd = new Date(settleDate.getTime() + epochMs);
 
     const scoredTweets = await prisma.tweet.findMany({
       where: {

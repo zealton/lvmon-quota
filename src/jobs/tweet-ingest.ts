@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getBearerClient, TWEET_FIELDS, USER_FIELDS, EXPANSIONS } from "@/lib/twitter";
 import { getConfig } from "@/lib/config";
+import { scoreQuality, AuthorProfile } from "@/lib/scoring";
 
 export async function runTweetIngest() {
   const jobRun = await prisma.jobRun.create({
@@ -16,24 +17,55 @@ export async function runTweetIngest() {
     const searchQuery = `@${handle} -is:retweet -is:reply`;
     const maxResults = Math.min(Math.max(config.max_search_results, 10), 100);
 
-    const result = await client.v2.search(searchQuery, {
-      "tweet.fields": TWEET_FIELDS.join(","),
-      "user.fields": USER_FIELDS.join(","),
-      expansions: EXPANSIONS.join(","),
-      max_results: maxResults,
-    });
+    // Get since_id from last successful ingest to avoid re-fetching old tweets
+    const sinceIdRow = await prisma.appConfig.findUnique({ where: { key: "ingest_since_id" } });
+    const sinceId = sinceIdRow?.value || undefined;
 
-    // Build author map from includes
-    const authorMap = new Map<string, { username: string; name: string; avatarUrl?: string }>();
-    if (result.includes?.users) {
-      for (const user of result.includes.users) {
-        authorMap.set(user.id, {
-          username: user.username,
-          name: user.name,
-          avatarUrl: user.profile_image_url,
-        });
+    // Fetch tweets with pagination to get ALL new tweets, not just first page
+    const allTweets: any[] = [];
+    const authorMap = new Map<string, {
+      username: string;
+      name: string;
+      avatarUrl?: string;
+      followersCount: number;
+      verified: boolean;
+    }>();
+
+    let nextToken: string | undefined;
+    let pagesRead = 0;
+    const MAX_PAGES = 5; // Safety limit: 5 pages × 100 = 500 tweets max
+
+    do {
+      const searchParams: Record<string, any> = {
+        "tweet.fields": TWEET_FIELDS.join(","),
+        "user.fields": USER_FIELDS.join(","),
+        expansions: EXPANSIONS.join(","),
+        max_results: maxResults,
+      };
+      if (sinceId) searchParams.since_id = sinceId;
+      if (nextToken) searchParams.next_token = nextToken;
+
+      const result = await client.v2.search(searchQuery, searchParams);
+
+      // Collect authors from includes
+      if (result.includes?.users) {
+        for (const user of result.includes.users) {
+          authorMap.set(user.id, {
+            username: user.username,
+            name: user.name,
+            avatarUrl: user.profile_image_url,
+            followersCount: (user.public_metrics as { followers_count?: number })?.followers_count || 0,
+            verified: !!(user as { verified?: boolean }).verified,
+          });
+        }
       }
-    }
+
+      const pageTweets = result.data?.data || [];
+      allTweets.push(...pageTweets);
+
+      nextToken = result.meta?.next_token;
+      pagesRead++;
+    } while (nextToken && pagesRead < MAX_PAGES);
 
     // Get all bound X user IDs
     const boundAccounts = await prisma.socialAccount.findMany({
@@ -44,10 +76,14 @@ export async function runTweetIngest() {
 
     let captured = 0;
     let skipped = 0;
+    let newestTweetId: string | null = null;
 
-    const tweets = result.data?.data || [];
+    const tweets = allTweets;
     for (const tweet of tweets) {
-      // Skip if already captured
+      // Track the newest tweet ID for since_id on next run
+      if (!newestTweetId) newestTweetId = tweet.id;
+
+      // Skip if already captured (safety net, since_id should prevent most duplicates)
       const existing = await prisma.tweet.findUnique({
         where: { tweetId: tweet.id },
       });
@@ -89,14 +125,16 @@ export async function runTweetIngest() {
         status = "rejected";
       }
 
-      await prisma.tweet.create({
+      const createdTweet = await prisma.tweet.create({
         data: {
           tweetId: tweet.id,
-          userId,
+          ...(userId ? { user: { connect: { id: userId } } } : {}),
           authorXUserId: authorId,
           authorUsername: authorInfo?.username || null,
           authorName: authorInfo?.name || null,
           authorAvatarUrl: authorInfo?.avatarUrl || null,
+          authorFollowers: authorInfo?.followersCount || 0,
+          authorVerified: authorInfo?.verified || false,
           text: tweet.text || "",
           lang: tweet.lang || null,
           conversationId: tweet.conversation_id || null,
@@ -119,7 +157,55 @@ export async function runTweetIngest() {
         },
       });
 
+      // Phase 1: Immediately score quality for eligible tweets
+      if (status === "eligible") {
+        try {
+          const authorProfile: AuthorProfile | undefined = authorInfo
+            ? {
+                username: authorInfo.username,
+                followersCount: authorInfo.followersCount,
+                verified: authorInfo.verified,
+              }
+            : undefined;
+
+          const quality = await scoreQuality(tweet.text || "", hasMedia, authorProfile);
+
+          await prisma.tweetScore.create({
+            data: {
+              tweetId: createdTweet.id,
+              qualityScore: quality.totalQuality,
+              engagementScore: 0,
+              trustMultiplier: 1,
+              finalScore: quality.totalQuality, // Quality counts immediately toward mindshare
+              riskLevel: "none",
+              scoringVersion: "v1",
+              isPublic: true,
+              relevanceSubscore: quality.relevanceSubscore,
+              originalitySubscore: quality.originalitySubscore,
+              formatSubscore: quality.formatSubscore,
+            },
+          });
+
+          await prisma.tweet.update({
+            where: { id: createdTweet.id },
+            data: { status: "quality_scored" },
+          });
+        } catch (err) {
+          console.error(`Quality scoring failed for tweet ${tweet.id}:`, err);
+          // Keep as eligible, tweet-score job will handle it later
+        }
+      }
+
       captured++;
+    }
+
+    // Save newest tweet ID for next run's since_id
+    if (newestTweetId) {
+      await prisma.appConfig.upsert({
+        where: { key: "ingest_since_id" },
+        update: { value: newestTweetId },
+        create: { key: "ingest_since_id", value: newestTweetId },
+      });
     }
 
     await prisma.jobRun.update({
@@ -127,11 +213,11 @@ export async function runTweetIngest() {
       data: {
         status: "completed",
         endedAt: new Date(),
-        result: { searchQuery, maxResults, captured, skipped, total: tweets.length },
+        result: { searchQuery, maxResults, captured, skipped, total: tweets.length, pages: pagesRead },
       },
     });
 
-    return { searchQuery, maxResults, captured, skipped, total: tweets.length };
+    return { searchQuery, maxResults, captured, skipped, total: tweets.length, pages: pagesRead };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     await prisma.jobRun.update({

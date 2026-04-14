@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
   const limit = Math.min(parseInt(req.nextUrl.searchParams.get("limit") || "50"), 100);
   const status = req.nextUrl.searchParams.get("status") || undefined;
 
-  const where = status ? { status: status as "captured" | "eligible" | "scored" | "rejected" | "settled" } : {};
+  const where = status ? { status: status as "captured" | "eligible" | "quality_scored" | "scored" | "rejected" | "settled" } : {};
 
   const [tweets, total] = await Promise.all([
     prisma.tweet.findMany({

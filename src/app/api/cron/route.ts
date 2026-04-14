@@ -7,6 +7,9 @@ import { runXProfileRefresh } from "@/jobs/x-profile-refresh";
 
 const CRON_SECRET = process.env.CRON_SECRET || "dev-cron-secret";
 
+// Track running jobs to prevent double-triggering
+const runningJobs = new Set<string>();
+
 export async function POST(req: NextRequest) {
   const body = await req.json();
   const { job, secret } = body;
@@ -16,30 +19,28 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  try {
-    let result;
-    switch (job) {
-      case "tweet-ingest":
-        result = await runTweetIngest();
-        break;
-      case "tweet-score":
-        result = await runTweetScore();
-        break;
-      case "daily-settlement":
-        result = await runDailySettlement();
-        break;
-      case "quota-expiry":
-        result = await runQuotaExpiry();
-        break;
-      case "x-profile-refresh":
-        result = await runXProfileRefresh();
-        break;
-      default:
-        return NextResponse.json({ error: `Unknown job: ${job}` }, { status: 400 });
-    }
-    return NextResponse.json({ success: true, result });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    return NextResponse.json({ error: message }, { status: 500 });
+  const jobMap: Record<string, () => Promise<unknown>> = {
+    "tweet-ingest": runTweetIngest,
+    "tweet-score": runTweetScore,
+    "daily-settlement": runDailySettlement,
+    "quota-expiry": runQuotaExpiry,
+    "x-profile-refresh": runXProfileRefresh,
+  };
+
+  const jobFn = jobMap[job];
+  if (!jobFn) {
+    return NextResponse.json({ error: `Unknown job: ${job}` }, { status: 400 });
   }
+
+  if (runningJobs.has(job)) {
+    return NextResponse.json({ success: true, status: "already_running" });
+  }
+
+  // Fire and forget — return immediately, job runs in background
+  runningJobs.add(job);
+  jobFn()
+    .catch((error: unknown) => console.error(`Job ${job} failed:`, error))
+    .finally(() => runningJobs.delete(job));
+
+  return NextResponse.json({ success: true, status: "started" });
 }

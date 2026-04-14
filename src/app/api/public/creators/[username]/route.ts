@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { TweetStatus } from "@prisma/client";
 
 export async function GET(
   req: NextRequest,
@@ -18,7 +19,7 @@ export async function GET(
           },
           tweets: {
             where: {
-              status: { in: ["scored", "settled"] },
+              status: { in: [TweetStatus.quality_scored, TweetStatus.scored, TweetStatus.settled] },
               score: { isPublic: true },
             },
             include: {
@@ -64,27 +65,32 @@ export async function GET(
       dailyReward: s.dailyReward,
       totalReward: s.totalReward,
     })),
-    tweets: user.tweets.map((t) => ({
-      tweetId: t.tweetId,
-      text: t.text,
-      createdAt: t.createdAtX,
-      hasMedia: t.hasMedia,
-      score: t.score
-        ? {
-            quality: t.score.qualityScore,
-            engagement: t.score.engagementScore,
-            trust: t.score.trustMultiplier,
-            final: t.score.finalScore,
-          }
-        : null,
-      metrics: t.metricSnapshots[0]
-        ? {
-            likes: t.metricSnapshots[0].likeCount,
-            replies: t.metricSnapshots[0].replyCount,
-            retweets: t.metricSnapshots[0].retweetCount,
-            quotes: t.metricSnapshots[0].quoteCount,
-          }
-        : null,
-    })),
+    tweets: user.tweets.map((t) => {
+      const isEngagementPending = t.status === "quality_scored";
+      return {
+        tweetId: t.tweetId,
+        text: t.text,
+        createdAt: t.createdAtX,
+        hasMedia: t.hasMedia,
+        status: t.status,
+        score: t.score
+          ? {
+              quality: t.score.qualityScore,
+              engagement: isEngagementPending ? null : t.score.engagementScore,
+              trust: isEngagementPending ? null : t.score.trustMultiplier,
+              final: t.score.finalScore,
+              engagementPending: isEngagementPending,
+            }
+          : null,
+        metrics: t.metricSnapshots[0]
+          ? {
+              likes: t.metricSnapshots[0].likeCount,
+              replies: t.metricSnapshots[0].replyCount,
+              retweets: t.metricSnapshots[0].retweetCount,
+              quotes: t.metricSnapshots[0].quoteCount,
+            }
+          : null,
+      };
+    }),
   });
 }

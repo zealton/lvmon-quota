@@ -7,6 +7,12 @@ function getOpenAI() {
   return _openai;
 }
 
+export interface AuthorProfile {
+  username: string;
+  followersCount: number;
+  verified: boolean;
+}
+
 export interface QualityScoreResult {
   relevanceSubscore: number;
   originalitySubscore: number;
@@ -14,8 +20,16 @@ export interface QualityScoreResult {
   totalQuality: number;
 }
 
-export async function scoreQuality(text: string, hasMedia: boolean): Promise<QualityScoreResult> {
+export async function scoreQuality(
+  text: string,
+  hasMedia: boolean,
+  author?: AuthorProfile
+): Promise<QualityScoreResult> {
   try {
+    const authorContext = author
+      ? `\nAuthor: @${author.username} | Followers: ${author.followersCount.toLocaleString()} | Verified: ${author.verified ? "Yes (blue check)" : "No"}`
+      : "";
+
     const response = await getOpenAI().chat.completions.create({
       model: "gpt-4o-mini",
       temperature: 0.1,
@@ -28,13 +42,24 @@ export async function scoreQuality(text: string, hasMedia: boolean): Promise<Qua
 Score the tweet on 3 dimensions. Return JSON with these exact keys:
 - relevance (0-15): How relevant is the content to LeverUp, LVMON, or the MON ecosystem? 15 = deeply relevant with specific project knowledge, 0 = completely unrelated
 - originality (0-15): Is this original content with unique perspective? 15 = highly original analysis/insight, 0 = copy-paste template or generic shill
-- format (0-10): Does it use rich formats? +3 for images/video, +3 for thread/detailed analysis, +2 for data/charts, +2 for product links
+- format (0-10): Does it use rich formats and does the author have reach?
+  Format scoring guide:
+  +2 for images/video attachments
+  +2 for thread/detailed analysis
+  +1 for data/charts
+  +1 for product links
+  Author reach bonus (based on followers & verification):
+  +1 if followers >= 1,000
+  +2 if followers >= 10,000
+  +3 if followers >= 50,000 OR verified account
+  +4 if followers >= 100,000 AND verified
+  (cap format score at 10)
 
 Return: {"relevance": number, "originality": number, "format": number}`,
         },
         {
           role: "user",
-          content: `Tweet text: "${text}"\nHas media attachments: ${hasMedia}`,
+          content: `Tweet text: "${text}"\nHas media attachments: ${hasMedia}${authorContext}`,
         },
       ],
     });

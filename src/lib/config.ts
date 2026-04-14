@@ -2,6 +2,7 @@ import { prisma } from "./prisma";
 
 export interface AppConfigValues {
   daily_quota_pool: number;
+  epoch_duration_hours: number;
   tweet_observation_window_hours: number;
   max_tweets_per_user_per_day: number;
   tweet_weight_1: number;
@@ -21,12 +22,13 @@ export interface AppConfigValues {
 
 const DEFAULTS: AppConfigValues = {
   daily_quota_pool: 1000,
-  tweet_observation_window_hours: 24,
-  max_tweets_per_user_per_day: 3,
+  epoch_duration_hours: 24,
+  tweet_observation_window_hours: 0.5,
+  max_tweets_per_user_per_day: 1,
   tweet_weight_1: 1.0,
-  tweet_weight_2: 0.5,
-  tweet_weight_3: 0.25,
-  min_text_length: 40,
+  tweet_weight_2: 0,
+  tweet_weight_3: 0,
+  min_text_length: 10,
   similarity_threshold: 0.85,
   engagement_like_weight: 1,
   engagement_reply_weight: 2,

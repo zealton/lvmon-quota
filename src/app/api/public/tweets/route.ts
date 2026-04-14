@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { TweetStatus } from "@prisma/client";
 import { getConfig } from "@/lib/config";
 
 export async function GET(req: NextRequest) {
@@ -9,11 +10,12 @@ export async function GET(req: NextRequest) {
   const mode = searchParams.get("mode") || "authors"; // "authors" or "tweets"
 
   if (mode === "tweets") {
-    // Original tweet-level listing
+    // Tweet-level listing — include quality_scored tweets so users see immediate feedback
+    const statusFilter = { in: [TweetStatus.quality_scored, TweetStatus.scored, TweetStatus.settled] };
     const [tweets, total] = await Promise.all([
       prisma.tweet.findMany({
         where: {
-          status: { in: ["scored", "settled"] },
+          status: statusFilter,
           score: { isPublic: true },
         },
         include: {
@@ -36,7 +38,7 @@ export async function GET(req: NextRequest) {
       }),
       prisma.tweet.count({
         where: {
-          status: { in: ["scored", "settled"] },
+          status: statusFilter,
           score: { isPublic: true },
         },
       }),
@@ -44,12 +46,14 @@ export async function GET(req: NextRequest) {
 
     const items = tweets.map((t) => {
       const metrics = t.metricSnapshots[0];
+      const isEngagementPending = t.status === "quality_scored";
       return {
         tweetId: t.tweetId,
         text: t.text,
         createdAt: t.createdAtX,
         hasMedia: t.hasMedia,
         isQuote: t.isQuote,
+        status: t.status,
         author: {
           username: t.authorUsername || "unknown",
           name: t.authorName || "Unknown",
@@ -58,9 +62,10 @@ export async function GET(req: NextRequest) {
         score: t.score
           ? {
               quality: t.score.qualityScore,
-              engagement: t.score.engagementScore,
+              engagement: isEngagementPending ? null : t.score.engagementScore,
               final: t.score.finalScore,
               scoredAt: t.score.scoredAt,
+              engagementPending: isEngagementPending,
             }
           : null,
         metrics: metrics
@@ -83,7 +88,7 @@ export async function GET(req: NextRequest) {
   // Author-grouped mode: aggregate scores per author
   const scoredTweets = await prisma.tweet.findMany({
     where: {
-      status: { in: ["scored", "settled"] },
+      status: { in: [TweetStatus.quality_scored, TweetStatus.scored, TweetStatus.settled] },
       score: { isPublic: true },
     },
     include: {
@@ -105,8 +110,11 @@ export async function GET(req: NextRequest) {
       name: string;
       avatarUrl: string | null;
       totalScore: number;
+      totalQuality: number;
+      totalEngagement: number;
       bestScore: number;
       tweetCount: number;
+      hasEngagementPending: boolean;
       totalLikes: number;
       totalRetweets: number;
       totalReplies: number;
@@ -119,6 +127,7 @@ export async function GET(req: NextRequest) {
         score: number;
         quality: number;
         engagement: number;
+        engagementPending: boolean;
         likes: number;
         retweets: number;
         replies: number;
@@ -131,6 +140,7 @@ export async function GET(req: NextRequest) {
     const key = t.authorXUserId;
     const existing = authorMap.get(key);
     const metrics = t.metricSnapshots[0];
+    const isEngPending = t.status === "quality_scored";
     const tweetData = {
       tweetId: t.tweetId,
       text: t.text,
@@ -138,16 +148,27 @@ export async function GET(req: NextRequest) {
       hasMedia: t.hasMedia,
       score: t.score?.finalScore || 0,
       quality: t.score?.qualityScore || 0,
-      engagement: t.score?.engagementScore || 0,
+      engagement: isEngPending ? 0 : (t.score?.engagementScore || 0),
+      engagementPending: isEngPending,
       likes: metrics?.likeCount || 0,
       retweets: metrics?.retweetCount || 0,
       replies: metrics?.replyCount || 0,
       quotes: metrics?.quoteCount || 0,
     };
 
+    const scoreVal = t.score?.finalScore || 0;
+    const qualityVal = t.score?.qualityScore || 0;
+    const engagementVal = isEngPending ? 0 : (t.score?.engagementScore || 0);
+
     if (existing) {
-      existing.totalScore += t.score?.finalScore || 0;
-      existing.bestScore = Math.max(existing.bestScore, t.score?.finalScore || 0);
+      // Only the best tweet counts for score — replace if this one is better
+      if (scoreVal > existing.bestScore) {
+        existing.bestScore = scoreVal;
+        existing.totalScore = scoreVal;
+        existing.totalQuality = qualityVal;
+        existing.totalEngagement = engagementVal;
+        existing.hasEngagementPending = isEngPending;
+      }
       existing.tweetCount++;
       existing.totalLikes += metrics?.likeCount || 0;
       existing.totalRetweets += metrics?.retweetCount || 0;
@@ -160,9 +181,12 @@ export async function GET(req: NextRequest) {
         username: t.authorUsername || "unknown",
         name: t.authorName || "Unknown",
         avatarUrl: t.authorAvatarUrl || null,
-        totalScore: t.score?.finalScore || 0,
-        bestScore: t.score?.finalScore || 0,
+        totalScore: scoreVal,
+        totalQuality: qualityVal,
+        totalEngagement: engagementVal,
+        bestScore: scoreVal,
         tweetCount: 1,
+        hasEngagementPending: isEngPending,
         totalLikes: metrics?.likeCount || 0,
         totalRetweets: metrics?.retweetCount || 0,
         totalReplies: metrics?.replyCount || 0,
@@ -209,10 +233,13 @@ export async function GET(req: NextRequest) {
       name: a.name,
       avatarUrl: a.avatarUrl,
       totalScore: Math.round(a.totalScore * 100) / 100,
+      totalQuality: Math.round(a.totalQuality * 100) / 100,
+      totalEngagement: Math.round(a.totalEngagement * 100) / 100,
+      hasEngagementPending: a.hasEngagementPending,
       bestScore: Math.round(a.bestScore * 100) / 100,
       mindsharePercent,
       dailyReward,
-      totalReward: dailyReward, // For now, use daily as total since we only have one day of data
+      totalReward: dailyReward,
       tweetCount: a.tweetCount,
       totalLikes: a.totalLikes,
       totalRetweets: a.totalRetweets,
@@ -227,6 +254,7 @@ export async function GET(req: NextRequest) {
     totalParticipants: totalAuthors,
     totalScore: Math.round(totalScoreAll * 100) / 100,
     dailyPool,
+    epochDurationHours: config.epoch_duration_hours,
     pagination: { page, limit, total: totalAuthors, totalPages: Math.ceil(totalAuthors / limit) },
   });
 }

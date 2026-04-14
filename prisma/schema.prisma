@@ -21,9 +21,10 @@ model User {
   id          String     @id @default(cuid())
   createdAt   DateTime   @default(now()) @map("created_at")
   updatedAt   DateTime   @updatedAt @map("updated_at")
-  status      UserStatus @default(active)
-  displayName String?    @map("display_name")
-  role        UserRole   @default(user)
+  status        UserStatus @default(active)
+  displayName   String?    @map("display_name")
+  role          UserRole   @default(user)
+  walletAddress String?    @map("wallet_address")
 
   socialAccounts   SocialAccount[]
   tweets           Tweet[]
@@ -61,6 +62,7 @@ model SocialAccount {
 enum TweetStatus {
   captured
   eligible
+  quality_scored
   ready_to_score
   scored
   rejected
@@ -74,8 +76,10 @@ model Tweet {
   authorXUserId   String      @map("author_x_user_id")
   authorUsername  String?     @map("author_username")
   authorName      String?     @map("author_name")
-  authorAvatarUrl String?     @map("author_avatar_url")
-  text            String
+  authorAvatarUrl    String?  @map("author_avatar_url")
+  authorFollowers    Int      @default(0) @map("author_followers")
+  authorVerified     Boolean  @default(false) @map("author_verified")
+  text               String
   lang            String?
   conversationId  String?     @map("conversation_id")
   createdAtX      DateTime    @map("created_at_x")
@@ -258,6 +262,23 @@ model JobRun {
   error     String?
 
   @@map("job_runs")
+}
+
+model ScoreLog {
+  id              String   @id @default(cuid())
+  tweetId         String   @map("tweet_id")
+  authorUsername  String?  @map("author_username")
+  logType         String   @map("log_type") // "new" | "update"
+  qualityScore    Float    @map("quality_score")
+  engagementPrev  Float    @default(0) @map("engagement_prev")
+  engagementNew   Float    @map("engagement_new")
+  finalPrev       Float    @default(0) @map("final_prev")
+  finalNew        Float    @map("final_new")
+  delta           Float    @default(0)
+  trustMultiplier Float    @default(1) @map("trust_multiplier")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@map("score_logs")
 }
 
 model AppConfig {

@@ -1,1 +1,22 @@
 @import "tailwindcss";
+
+@theme {
+  /* Coinbase-inspired color palette */
+  --color-brand: #0052ff;
+  --color-brand-hover: #578bfa;
+  --color-brand-muted: #0667d0;
+  --color-surface-dark: #0a0b0d;
+  --color-surface-card: #131517;
+  --color-surface-elevated: #1a1d21;
+  --color-surface-secondary: #282b31;
+  --color-surface-light: #eef0f3;
+  --color-border: rgba(91, 97, 110, 0.2);
+  --color-border-strong: rgba(91, 97, 110, 0.4);
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #8a919e;
+  --color-text-tertiary: #5b616e;
+  --color-accent-green: #00d395;
+  --color-accent-red: #ff5a5a;
+  --color-accent-yellow: #ffb238;
+  --color-accent-cyan: #05b4e3;
+}

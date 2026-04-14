@@ -36,26 +36,26 @@ export function UserSummaryCard() {
   const stat = summary.latestStat;
 
   return (
-    <div className="bg-gradient-to-r from-purple-900/30 to-cyan-900/30 border border-purple-500/20 rounded-xl p-6 mb-6">
+    <div className="bg-surface-card border border-border rounded-2xl p-6 mb-6">
       <div className="flex items-center gap-4">
         {summary.avatarUrl && (
           <img
             src={summary.avatarUrl}
             alt=""
-            className="w-14 h-14 rounded-full border-2 border-purple-400/50"
+            className="w-14 h-14 rounded-full ring-2 ring-brand/30"
           />
         )}
         <div className="flex-1">
           <div className="flex items-center gap-2">
             <span className="font-semibold text-lg">{summary.displayName}</span>
-            <span className="text-sm text-gray-400">@{summary.username}</span>
+            <span className="text-sm text-text-tertiary">@{summary.username}</span>
           </div>
           {stat && (
-            <div className="flex items-center gap-1 mt-1">
-              <span className="text-xs px-2 py-0.5 bg-purple-600/30 text-purple-300 rounded-full">
+            <div className="flex items-center gap-1.5 mt-1">
+              <span className="text-xs px-2 py-0.5 bg-brand/10 text-brand rounded-lg font-medium">
                 Rank #{stat.rank}
               </span>
-              <span className="text-xs px-2 py-0.5 bg-cyan-600/30 text-cyan-300 rounded-full">
+              <span className="text-xs px-2 py-0.5 bg-accent-cyan/10 text-accent-cyan rounded-lg font-medium">
                 {stat.mindsharePercent}% mindshare
               </span>
             </div>
@@ -63,24 +63,24 @@ export function UserSummaryCard() {
         </div>
 
         <div className="text-right">
-          <div className="text-xs text-gray-400 uppercase tracking-wider">Balance</div>
-          <div className="text-2xl font-bold text-cyan-400">
+          <div className="text-xs text-text-tertiary uppercase tracking-wider">Balance</div>
+          <div className="text-2xl font-bold text-brand">
             {summary.currentBalance.toLocaleString()}
           </div>
-          <div className="text-xs text-gray-500">LVMON Quota</div>
+          <div className="text-xs text-text-tertiary">LVMON Quota</div>
         </div>
       </div>
 
       {stat && (
-        <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-700/50">
+        <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-border">
           <div>
-            <div className="text-xs text-gray-400">Daily Reward</div>
-            <div className="text-lg font-semibold text-green-400">
+            <div className="text-xs text-text-tertiary">Daily Reward</div>
+            <div className="text-lg font-semibold text-accent-green">
               +{stat.dailyReward.toLocaleString()}
             </div>
           </div>
           <div>
-            <div className="text-xs text-gray-400">Total Earned</div>
+            <div className="text-xs text-text-tertiary">Total Earned</div>
             <div className="text-lg font-semibold">
               {stat.totalReward.toLocaleString()}
             </div>
@@ -93,13 +93,13 @@ export function UserSummaryCard() {
           href={`https://x.com/intent/tweet?text=${encodeURIComponent("@LeverUp_xyz ")}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex-1 text-center px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors"
+          className="flex-1 text-center px-5 py-2.5 bg-brand hover:bg-brand-hover text-white text-sm font-semibold rounded-[56px] transition-colors"
         >
           Post on X
         </a>
         <a
           href={`/creators/${summary.username}`}
-          className="flex-1 text-center px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium rounded-lg transition-colors"
+          className="flex-1 text-center px-5 py-2.5 bg-surface-secondary hover:bg-surface-elevated text-text-primary text-sm font-semibold rounded-[56px] transition-colors"
         >
           My Details
         </a>
