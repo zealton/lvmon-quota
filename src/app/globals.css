@@ -1,22 +1,92 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@700&display=swap');
 @import "tailwindcss";
 
 @theme {
-  /* Coinbase-inspired color palette */
-  --color-brand: #0052ff;
-  --color-brand-hover: #578bfa;
-  --color-brand-muted: #0667d0;
-  --color-surface-dark: #0a0b0d;
-  --color-surface-card: #131517;
-  --color-surface-elevated: #1a1d21;
-  --color-surface-secondary: #282b31;
-  --color-surface-light: #eef0f3;
-  --color-border: rgba(91, 97, 110, 0.2);
-  --color-border-strong: rgba(91, 97, 110, 0.4);
-  --color-text-primary: #ffffff;
-  --color-text-secondary: #8a919e;
-  --color-text-tertiary: #5b616e;
-  --color-accent-green: #00d395;
-  --color-accent-red: #ff5a5a;
-  --color-accent-yellow: #ffb238;
-  --color-accent-cyan: #05b4e3;
+  /* LeverUp Trading Terminal Color System */
+
+  /* Base Neutrals */
+  --color-bg-canvas: #0f0f0f;
+  --color-bg-app: #121212;
+  --color-bg-panel: #131514;
+  --color-surface-1: #1c1d1e;
+  --color-surface-2: #1e1e1e;
+  --color-surface-3: #262627;
+  --color-surface-hover: #2a2a2a;
+
+  /* Borders */
+  --color-border: #2a2a2a;
+  --color-border-strong: #494949;
+
+  /* Text */
+  --color-text-primary: #fafafa;
+  --color-text-secondary: #e1e1e1;
+  --color-text-muted: #aeb0ac;
+  --color-text-subtle: #7c8080;
+  --color-text-faint: #707070;
+
+  /* Market Colors — Long (positive) */
+  --color-accent-long: #c7f50d;
+  --color-accent-long-strong: #ccff00;
+  --color-accent-long-bg: #2f3610;
+
+  /* Market Colors — Short (negative) */
+  --color-accent-short: #fa5000;
+  --color-accent-short-strong: #ee1010;
+  --color-accent-short-bg: #321414;
+
+  /* Utility */
+  --color-info: #1283da;
+  --color-success: #11af22;
+  --color-error: #ef3061;
+  --color-warning: #ffd600;
+
+  /* Legacy aliases for components not yet migrated */
+  --color-brand: #c7f50d;
+  --color-brand-hover: #ccff00;
+  --color-accent-green: #c7f50d;
+  --color-accent-cyan: #1283da;
+  --color-accent-yellow: #ffd600;
+  --color-accent-red: #fa5000;
+
+  /* Font */
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Orbitron', sans-serif;
+}
+
+/* Subtle grid background for main pages */
+.grid-bg {
+  background-color: #0f0f0f;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Animations */
+@keyframes engage-glow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+@keyframes ecg-sweep {
+  0% { stroke-dashoffset: 48; }
+  100% { stroke-dashoffset: 0; }
+}
+
+@keyframes live-dot {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.4); opacity: 0.5; }
+}
+
+.engage-live {
+  animation: engage-glow 3s ease-in-out infinite;
+}
+
+.live-dot {
+  animation: live-dot 2s ease-in-out infinite;
+}
+
+/* Tabular numerals for data-heavy UI */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
 }

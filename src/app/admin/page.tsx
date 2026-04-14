@@ -31,14 +31,14 @@ function RecentJobRuns({ jobs }: { jobs: DashboardData["recentJobs"] }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   return (
-    <div className="bg-surface-card border border-border rounded-2xl p-6">
+    <div className="bg-surface-1 border border-border rounded-md p-6">
       <h2 className="font-semibold mb-4">Recent Job Runs</h2>
       {jobs.length === 0 ? (
-        <div className="text-sm text-text-tertiary py-4 text-center">No jobs have been run yet.</div>
+        <div className="text-sm text-text-subtle py-4 text-center">No jobs have been run yet.</div>
       ) : (
         <div className="space-y-0">
           {/* Header */}
-          <div className="grid grid-cols-[1fr_5rem_10rem_2rem] gap-4 items-center px-4 py-2 text-xs text-text-tertiary uppercase tracking-wider border-b border-border">
+          <div className="grid grid-cols-[1fr_5rem_10rem_2rem] gap-4 items-center px-4 py-2 text-xs text-text-subtle uppercase tracking-wider border-b border-border">
             <div>Job</div>
             <div>Status</div>
             <div>Started</div>
@@ -51,22 +51,22 @@ function RecentJobRuns({ jobs }: { jobs: DashboardData["recentJobs"] }) {
               <div key={j.id} className="border-b border-border">
                 <div
                   className={`grid grid-cols-[1fr_5rem_10rem_2rem] gap-4 items-center px-4 py-2.5 transition-colors ${
-                    hasContent ? "cursor-pointer hover:bg-surface-elevated/50" : ""
+                    hasContent ? "cursor-pointer hover:bg-surface-hover/50" : ""
                   }`}
                   onClick={() => hasContent && setExpandedId(isExpanded ? null : j.id)}
                 >
                   <div className="font-medium text-sm">{j.name}</div>
                   <div>
                     <span className={`px-2.5 py-0.5 rounded-lg text-xs font-medium ${
-                      j.status === "completed" ? "bg-accent-green/10 text-accent-green" :
-                      j.status === "failed" ? "bg-accent-red/10 text-accent-red" :
-                      "bg-accent-yellow/10 text-accent-yellow"
+                      j.status === "completed" ? "bg-accent-long/10 text-accent-long" :
+                      j.status === "failed" ? "bg-accent-short/10 text-accent-short" :
+                      "bg-warning/10 text-warning"
                     }`}>
                       {j.status}
                     </span>
                   </div>
-                  <div className="text-text-tertiary text-xs">{new Date(j.startedAt).toLocaleString()}</div>
-                  <div className="text-text-tertiary">
+                  <div className="text-text-subtle text-xs">{new Date(j.startedAt).toLocaleString()}</div>
+                  <div className="text-text-subtle">
                     {hasContent && (
                       <svg className={`w-4 h-4 transition-transform ${isExpanded ? "rotate-180" : ""}`} viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" />
@@ -75,8 +75,8 @@ function RecentJobRuns({ jobs }: { jobs: DashboardData["recentJobs"] }) {
                   </div>
                 </div>
                 {isExpanded && (
-                  <div className={`px-4 pb-3 ${j.error ? "text-accent-red" : "text-text-secondary"}`}>
-                    <pre className="text-xs font-mono bg-surface-elevated rounded-xl p-3 whitespace-pre-wrap overflow-x-auto">
+                  <div className={`px-4 pb-3 ${j.error ? "text-accent-short" : "text-text-secondary"}`}>
+                    <pre className="text-xs font-mono bg-surface-hover rounded p-3 whitespace-pre-wrap overflow-x-auto">
                       {j.error || JSON.stringify(j.result, null, 2)}
                     </pre>
                   </div>
@@ -192,7 +192,7 @@ export default function AdminDashboard() {
     }
   };
 
-  if (!data) return <div className="p-8 text-center text-text-tertiary">Loading dashboard...</div>;
+  if (!data) return <div className="p-8 text-center text-text-subtle">Loading dashboard...</div>;
 
   const obsWindow = data.currentConfig?.tweet_observation_window_hours || 0.5;
 
@@ -204,27 +204,27 @@ export default function AdminDashboard() {
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
-          <div className="bg-surface-card border border-border rounded-2xl p-4">
-            <div className="text-xs text-text-tertiary">Search Handle</div>
+          <div className="bg-surface-1 border border-border rounded-md p-4">
+            <div className="text-xs text-text-subtle">Search Handle</div>
             <div className="text-lg font-bold text-brand">{data.currentConfig?.search_handle || "@LeverUp_xyz"}</div>
           </div>
-          <div className="bg-surface-card border border-border rounded-2xl p-4">
-            <div className="text-xs text-text-tertiary">Daily Pool</div>
+          <div className="bg-surface-1 border border-border rounded-md p-4">
+            <div className="text-xs text-text-subtle">Epoch Quota Pool</div>
             <div className="text-2xl font-bold">{data.currentConfig?.daily_quota_pool?.toLocaleString() || 1000}</div>
           </div>
-          <div className="bg-surface-card border border-border rounded-2xl p-4">
-            <div className="text-xs text-text-tertiary">Total Users</div>
+          <div className="bg-surface-1 border border-border rounded-md p-4">
+            <div className="text-xs text-text-subtle">Total Users</div>
             <div className="text-2xl font-bold">{data.totalUsers}</div>
           </div>
-          <div className="bg-surface-card border border-border rounded-2xl p-4">
-            <div className="text-xs text-text-tertiary">Tweets (Scored)</div>
-            <div className="text-2xl font-bold text-accent-green">
+          <div className="bg-surface-1 border border-border rounded-md p-4">
+            <div className="text-xs text-text-subtle">Tweets (Scored)</div>
+            <div className="text-2xl font-bold text-accent-long">
               {(data.tweetsByStatus?.["scored"] || 0) + (data.tweetsByStatus?.["settled"] || 0)}
-              <span className="text-sm text-text-tertiary font-normal"> / {data.totalTweets || 0}</span>
+              <span className="text-sm text-text-subtle font-normal"> / {data.totalTweets || 0}</span>
             </div>
           </div>
-          <div className="bg-surface-card border border-border rounded-2xl p-4">
-            <div className="text-xs text-text-tertiary">Quality Scored</div>
+          <div className="bg-surface-1 border border-border rounded-md p-4">
+            <div className="text-xs text-text-subtle">Quality Scored</div>
             <div className="text-2xl font-bold text-brand">
               {data.tweetsByStatus?.["quality_scored"] || 0}
             </div>
@@ -232,90 +232,90 @@ export default function AdminDashboard() {
         </div>
 
         {/* Pipeline Explanation */}
-        <div className="bg-surface-card border border-border rounded-2xl p-6 mb-8">
+        <div className="bg-surface-1 border border-border rounded-md p-6 mb-8">
           <h2 className="font-semibold mb-3">Scoring Pipeline</h2>
           <div className="flex items-center gap-3 text-sm flex-wrap">
-            <div className="flex items-center gap-2 px-4 py-2 bg-surface-secondary rounded-xl">
-              <div className={`w-2 h-2 rounded-full ${scheduler?.tweetIngest.enabled ? "bg-accent-green" : "bg-text-tertiary"}`} />
+            <div className="flex items-center gap-2 px-4 py-2 bg-surface-3 rounded">
+              <div className={`w-2 h-2 rounded ${scheduler?.tweetIngest.enabled ? "bg-accent-long" : "bg-text-tertiary"}`} />
               <div>
                 <div className="font-medium">Scan + Quality</div>
-                <div className="text-xs text-text-tertiary">
+                <div className="text-xs text-text-subtle">
                   {scheduler?.tweetIngest.enabled
-                    ? <span className="text-accent-green">Auto every {scheduler.tweetIngest.intervalMinutes}min</span>
+                    ? <span className="text-accent-long">Auto every {scheduler.tweetIngest.intervalMinutes}min</span>
                     : <span>Manual only</span>
                   }
                 </div>
               </div>
             </div>
-            <svg className="w-5 h-5 text-text-tertiary shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" /></svg>
-            <div className="flex items-center gap-2 px-4 py-2 bg-accent-yellow/10 border border-accent-yellow/20 rounded-xl">
-              <div className="w-2 h-2 rounded-full bg-accent-yellow animate-pulse" />
+            <svg className="w-5 h-5 text-text-subtle shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" /></svg>
+            <div className="flex items-center gap-2 px-4 py-2 bg-warning/10 border border-accent-yellow/20 rounded">
+              <div className="w-2 h-2 rounded bg-warning animate-pulse" />
               <div>
-                <div className="font-medium text-accent-yellow">
+                <div className="font-medium text-warning">
                   Observation Window: {obsWindow >= 1 ? `${obsWindow}h` : `${obsWindow * 60}min`}
                 </div>
-                <div className="text-xs text-text-tertiary">Engagement data accumulates</div>
+                <div className="text-xs text-text-subtle">Engagement data accumulates</div>
               </div>
             </div>
-            <svg className="w-5 h-5 text-text-tertiary shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" /></svg>
-            <div className="flex items-center gap-2 px-4 py-2 bg-surface-secondary rounded-xl">
-              <div className={`w-2 h-2 rounded-full ${scheduler?.tweetScore.enabled ? "bg-accent-green" : "bg-text-tertiary"}`} />
+            <svg className="w-5 h-5 text-text-subtle shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" /></svg>
+            <div className="flex items-center gap-2 px-4 py-2 bg-surface-3 rounded">
+              <div className={`w-2 h-2 rounded ${scheduler?.tweetScore.enabled ? "bg-accent-long" : "bg-text-tertiary"}`} />
               <div>
                 <div className="font-medium">Engagement Score</div>
-                <div className="text-xs text-text-tertiary">
+                <div className="text-xs text-text-subtle">
                   {scheduler?.tweetScore.enabled
-                    ? <span className="text-accent-green">Auto every {scheduler.tweetScore.intervalMinutes}min — re-evaluates until settled</span>
+                    ? <span className="text-accent-long">Auto every {scheduler.tweetScore.intervalMinutes}min — re-evaluates until settled</span>
                     : <span>Manual only — re-evaluates until settled</span>
                   }
                 </div>
               </div>
             </div>
-            <svg className="w-5 h-5 text-text-tertiary shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" /></svg>
-            <div className="flex items-center gap-2 px-4 py-2 bg-surface-secondary rounded-xl">
-              <div className="w-2 h-2 rounded-full bg-text-tertiary" />
+            <svg className="w-5 h-5 text-text-subtle shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" /></svg>
+            <div className="flex items-center gap-2 px-4 py-2 bg-surface-3 rounded">
+              <div className="w-2 h-2 rounded bg-text-tertiary" />
               <div>
                 <div className="font-medium">Settlement</div>
-                <div className="text-xs text-text-tertiary">Manual — distribute daily quota</div>
+                <div className="text-xs text-text-subtle">Manual — distribute daily quota</div>
               </div>
             </div>
           </div>
         </div>
 
         {/* Auto Scheduler */}
-        <div className="bg-surface-card border border-brand/20 rounded-2xl p-6 mb-8">
+        <div className="bg-surface-1 border border-accent-long/20 rounded-md p-6 mb-8">
           <h2 className="font-semibold mb-1">Auto Scheduler</h2>
-          <p className="text-xs text-text-tertiary mb-5">
+          <p className="text-xs text-text-subtle mb-5">
             Enable automatic scanning and scoring. When active, jobs run on the configured interval.
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Ingest Scheduler */}
-            <div className={`border rounded-2xl p-5 transition-colors ${
+            <div className={`border rounded-md p-5 transition-colors ${
               scheduler?.tweetIngest.enabled
-                ? "border-accent-green/30 bg-accent-green/5"
-                : "border-border bg-surface-elevated"
+                ? "border-accent-green/30 bg-accent-long/5"
+                : "border-border bg-surface-hover"
             }`}>
               <div className="flex items-center justify-between mb-3">
                 <div>
                   <div className="font-semibold text-sm">Tweet Scan + Quality Score</div>
-                  <div className="text-xs text-text-tertiary mt-0.5">
+                  <div className="text-xs text-text-subtle mt-0.5">
                     Searches X for new tweets, then immediately scores content quality via AI
                   </div>
                 </div>
                 <button
                   onClick={() => toggleScheduler("tweetIngest", !scheduler?.tweetIngest.enabled, ingestInterval)}
-                  className={`relative w-12 h-6 rounded-full transition-colors ${
-                    scheduler?.tweetIngest.enabled ? "bg-accent-green" : "bg-surface-secondary"
+                  className={`relative w-12 h-6 rounded transition-colors ${
+                    scheduler?.tweetIngest.enabled ? "bg-accent-long" : "bg-surface-3"
                   }`}
                 >
-                  <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
+                  <div className={`absolute top-0.5 w-5 h-5 bg-white rounded transition-transform ${
                     scheduler?.tweetIngest.enabled ? "translate-x-6" : "translate-x-0.5"
                   }`} />
                 </button>
               </div>
 
               <div className="flex items-center gap-3">
-                <label className="text-xs text-text-tertiary">Every</label>
+                <label className="text-xs text-text-subtle">Every</label>
                 <input
                   type="number"
                   min="1"
@@ -323,16 +323,16 @@ export default function AdminDashboard() {
                   value={ingestInterval}
                   onChange={(e) => setIngestInterval(parseInt(e.target.value) || 15)}
                   onBlur={() => updateInterval("tweetIngest", ingestInterval)}
-                  className="w-20 bg-surface-dark border border-border rounded-xl px-3 py-1.5 text-sm text-center focus:border-brand focus:outline-none"
+                  className="w-20 bg-surface-dark border border-border rounded px-3 py-1.5 text-sm text-center focus:border-accent-long focus:outline-none"
                 />
-                <label className="text-xs text-text-tertiary">minutes</label>
+                <label className="text-xs text-text-subtle">minutes</label>
               </div>
 
               {scheduler?.tweetIngest.lastRunAt && (
-                <div className="mt-3 pt-3 border-t border-border flex items-center gap-2 text-xs text-text-tertiary">
-                  <span className={`w-1.5 h-1.5 rounded-full ${
-                    scheduler.tweetIngest.running ? "bg-accent-yellow animate-pulse" :
-                    scheduler.tweetIngest.lastRunStatus === "completed" ? "bg-accent-green" : "bg-accent-red"
+                <div className="mt-3 pt-3 border-t border-border flex items-center gap-2 text-xs text-text-subtle">
+                  <span className={`w-1.5 h-1.5 rounded ${
+                    scheduler.tweetIngest.running ? "bg-warning animate-pulse" :
+                    scheduler.tweetIngest.lastRunStatus === "completed" ? "bg-accent-long" : "bg-accent-short"
                   }`} />
                   {scheduler.tweetIngest.running ? "Running now..." : (
                     <>Last run: {new Date(scheduler.tweetIngest.lastRunAt).toLocaleString()} ({scheduler.tweetIngest.lastRunStatus})</>
@@ -342,32 +342,32 @@ export default function AdminDashboard() {
             </div>
 
             {/* Score Scheduler */}
-            <div className={`border rounded-2xl p-5 transition-colors ${
+            <div className={`border rounded-md p-5 transition-colors ${
               scheduler?.tweetScore.enabled
-                ? "border-accent-green/30 bg-accent-green/5"
-                : "border-border bg-surface-elevated"
+                ? "border-accent-green/30 bg-accent-long/5"
+                : "border-border bg-surface-hover"
             }`}>
               <div className="flex items-center justify-between mb-3">
                 <div>
                   <div className="font-semibold text-sm">Engagement Score</div>
-                  <div className="text-xs text-text-tertiary mt-0.5">
+                  <div className="text-xs text-text-subtle mt-0.5">
                     First score after {obsWindow >= 1 ? `${obsWindow}h` : `${obsWindow * 60}min`} window, then re-evaluates all unsettled tweets each run
                   </div>
                 </div>
                 <button
                   onClick={() => toggleScheduler("tweetScore", !scheduler?.tweetScore.enabled, scoreInterval)}
-                  className={`relative w-12 h-6 rounded-full transition-colors ${
-                    scheduler?.tweetScore.enabled ? "bg-accent-green" : "bg-surface-secondary"
+                  className={`relative w-12 h-6 rounded transition-colors ${
+                    scheduler?.tweetScore.enabled ? "bg-accent-long" : "bg-surface-3"
                   }`}
                 >
-                  <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
+                  <div className={`absolute top-0.5 w-5 h-5 bg-white rounded transition-transform ${
                     scheduler?.tweetScore.enabled ? "translate-x-6" : "translate-x-0.5"
                   }`} />
                 </button>
               </div>
 
               <div className="flex items-center gap-3">
-                <label className="text-xs text-text-tertiary">Every</label>
+                <label className="text-xs text-text-subtle">Every</label>
                 <input
                   type="number"
                   min="1"
@@ -375,16 +375,16 @@ export default function AdminDashboard() {
                   value={scoreInterval}
                   onChange={(e) => setScoreInterval(parseInt(e.target.value) || 30)}
                   onBlur={() => updateInterval("tweetScore", scoreInterval)}
-                  className="w-20 bg-surface-dark border border-border rounded-xl px-3 py-1.5 text-sm text-center focus:border-brand focus:outline-none"
+                  className="w-20 bg-surface-dark border border-border rounded px-3 py-1.5 text-sm text-center focus:border-accent-long focus:outline-none"
                 />
-                <label className="text-xs text-text-tertiary">minutes</label>
+                <label className="text-xs text-text-subtle">minutes</label>
               </div>
 
               {scheduler?.tweetScore.lastRunAt && (
-                <div className="mt-3 pt-3 border-t border-border flex items-center gap-2 text-xs text-text-tertiary">
-                  <span className={`w-1.5 h-1.5 rounded-full ${
-                    scheduler.tweetScore.running ? "bg-accent-yellow animate-pulse" :
-                    scheduler.tweetScore.lastRunStatus === "completed" ? "bg-accent-green" : "bg-accent-red"
+                <div className="mt-3 pt-3 border-t border-border flex items-center gap-2 text-xs text-text-subtle">
+                  <span className={`w-1.5 h-1.5 rounded ${
+                    scheduler.tweetScore.running ? "bg-warning animate-pulse" :
+                    scheduler.tweetScore.lastRunStatus === "completed" ? "bg-accent-long" : "bg-accent-short"
                   }`} />
                   {scheduler.tweetScore.running ? "Running now..." : (
                     <>Last run: {new Date(scheduler.tweetScore.lastRunAt).toLocaleString()} ({scheduler.tweetScore.lastRunStatus})</>
@@ -396,9 +396,9 @@ export default function AdminDashboard() {
         </div>
 
         {/* Manual Triggers */}
-        <div className="bg-surface-card border border-border rounded-2xl p-6 mb-8">
+        <div className="bg-surface-1 border border-border rounded-md p-6 mb-8">
           <h2 className="font-semibold mb-1">Manual Triggers</h2>
-          <p className="text-xs text-text-tertiary mb-4">
+          <p className="text-xs text-text-subtle mb-4">
             Run jobs immediately, regardless of scheduler state.
           </p>
 
@@ -414,29 +414,29 @@ export default function AdminDashboard() {
                 key={job}
                 onClick={() => triggerJob(job)}
                 disabled={jobRunning !== null}
-                className={`text-left p-4 rounded-xl transition-all border ${
+                className={`text-left p-4 rounded transition-all border ${
                   jobRunning === job
-                    ? "bg-surface-elevated border-border animate-pulse"
+                    ? "bg-surface-hover border-border animate-pulse"
                     : jobRunning !== null
-                    ? "bg-surface-card border-border opacity-50 cursor-not-allowed"
-                    : "bg-surface-secondary border-border hover:border-brand hover:bg-surface-elevated"
+                    ? "bg-surface-1 border-border opacity-50 cursor-not-allowed"
+                    : "bg-surface-3 border-border hover:border-accent-long hover:bg-surface-hover"
                 }`}
               >
                 <div className="font-medium text-sm">
                   {jobRunning === job ? "Running..." : label}
                 </div>
-                <div className="text-xs text-text-tertiary mt-1">{desc}</div>
+                <div className="text-xs text-text-subtle mt-1">{desc}</div>
               </button>
             ))}
           </div>
 
           {lastJobResult && (
-            <div className={`mt-4 p-4 rounded-xl text-sm font-mono border ${
+            <div className={`mt-4 p-4 rounded text-sm font-mono border ${
               lastJobResult.result?.error
-                ? "bg-accent-red/5 border-accent-red/20 text-accent-red"
-                : "bg-accent-green/5 border-accent-green/20 text-accent-green"
+                ? "bg-accent-short/5 border-accent-red/20 text-accent-short"
+                : "bg-accent-long/5 border-accent-green/20 text-accent-long"
             }`}>
-              <div className="text-xs text-text-tertiary mb-1">Result: {lastJobResult.job}</div>
+              <div className="text-xs text-text-subtle mb-1">Result: {lastJobResult.job}</div>
               <pre className="whitespace-pre-wrap text-xs">
                 {JSON.stringify(lastJobResult.result, null, 2)}
               </pre>
@@ -445,14 +445,14 @@ export default function AdminDashboard() {
         </div>
 
         {/* Recent Pools */}
-        <div className="bg-surface-card border border-border rounded-2xl p-6 mb-8">
+        <div className="bg-surface-1 border border-border rounded-md p-6 mb-8">
           <h2 className="font-semibold mb-4">Recent Quota Pools</h2>
           {data.recentPools.length === 0 ? (
-            <div className="text-sm text-text-tertiary py-4 text-center">No settlement data yet. Run "Settlement" to start.</div>
+            <div className="text-sm text-text-subtle py-4 text-center">No settlement data yet. Run "Settlement" to start.</div>
           ) : (
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-xs text-text-tertiary border-b border-border">
+                <tr className="text-xs text-text-subtle border-b border-border">
                   <th className="text-left py-2">Date</th>
                   <th className="text-right py-2">Amount</th>
                   <th className="text-right py-2">Total Score</th>
@@ -467,9 +467,9 @@ export default function AdminDashboard() {
                     <td className="text-right">{p.totalScore.toFixed(1)}</td>
                     <td className="text-right">
                       <span className={`px-2.5 py-0.5 rounded-lg text-xs font-medium ${
-                        p.status === "settled" ? "bg-accent-green/10 text-accent-green" :
-                        p.status === "empty" ? "bg-surface-secondary text-text-tertiary" :
-                        "bg-accent-yellow/10 text-accent-yellow"
+                        p.status === "settled" ? "bg-accent-long/10 text-accent-long" :
+                        p.status === "empty" ? "bg-surface-3 text-text-subtle" :
+                        "bg-warning/10 text-warning"
                       }`}>
                         {p.status}
                       </span>

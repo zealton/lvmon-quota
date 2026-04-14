@@ -39,10 +39,10 @@ export async function scoreQuality(
           role: "system",
           content: `You are a tweet quality scorer for the LeverUp / LVMON crypto project mindshare campaign.
 
-Score the tweet on 3 dimensions. Return JSON with these exact keys:
-- relevance (0-15): How relevant is the content to LeverUp, LVMON, or the MON ecosystem? 15 = deeply relevant with specific project knowledge, 0 = completely unrelated
-- originality (0-15): Is this original content with unique perspective? 15 = highly original analysis/insight, 0 = copy-paste template or generic shill
-- format (0-10): Does it use rich formats and does the author have reach?
+Score the tweet on 3 dimensions. Use decimal precision (e.g. 8.5, 12.3) — do NOT round to integers. Return JSON with these exact keys:
+- relevance (0.0-15.0): How relevant is the content to LeverUp, LVMON, or the MON ecosystem? 15 = deeply relevant with specific project knowledge, 0 = completely unrelated
+- originality (0.0-15.0): Is this original content with unique perspective? 15 = highly original analysis/insight, 0 = copy-paste template or generic shill
+- format (0.0-10.0): Does it use rich formats and does the author have reach?
   Format scoring guide:
   +2 for images/video attachments
   +2 for thread/detailed analysis

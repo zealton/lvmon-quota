@@ -67,10 +67,10 @@ export default function AdminUsersPage() {
         <AdminTabs />
         <h1 className="text-2xl font-bold mb-6">User Management</h1>
 
-        <div className="bg-surface-card border border-border rounded-2xl overflow-hidden">
+        <div className="bg-surface-1 border border-border rounded-md overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-xs text-text-tertiary border-b border-border">
+              <tr className="text-xs text-text-subtle border-b border-border">
                 <th className="text-left py-3 px-4">User</th>
                 <th className="text-left py-3 px-4">Status</th>
                 <th className="text-right py-3 px-4">Followers</th>
@@ -81,36 +81,36 @@ export default function AdminUsersPage() {
             </thead>
             <tbody>
               {users.map((u) => (
-                <tr key={u.id} className="border-b border-border hover:bg-surface-elevated/50 transition-colors">
+                <tr key={u.id} className="border-b border-border hover:bg-surface-hover/50 transition-colors">
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-2">
                       {u.social?.avatarUrl && (
-                        <img src={u.social.avatarUrl} alt="" className="w-6 h-6 rounded-full" />
+                        <img src={u.social.avatarUrl} alt="" className="w-6 h-6 rounded" />
                       )}
                       <div>
                         <div className="font-medium">{u.social?.name || u.displayName}</div>
-                        <div className="text-xs text-text-tertiary">@{u.social?.username || "?"}</div>
+                        <div className="text-xs text-text-subtle">@{u.social?.username || "?"}</div>
                       </div>
                     </div>
                   </td>
                   <td className="py-3 px-4">
                     <span className={`px-2.5 py-0.5 rounded-lg text-xs font-medium ${
-                      u.status === "banned" ? "bg-accent-red/10 text-accent-red" : "bg-accent-green/10 text-accent-green"
+                      u.status === "banned" ? "bg-accent-short/10 text-accent-short" : "bg-accent-long/10 text-accent-long"
                     }`}>
                       {u.status}
                     </span>
                   </td>
                   <td className="py-3 px-4 text-right font-mono">{u.social?.followersCount?.toLocaleString() || 0}</td>
                   <td className="py-3 px-4 text-right font-mono">{u.tweetCount}</td>
-                  <td className="py-3 px-4 text-right text-text-tertiary text-xs">{new Date(u.createdAt).toLocaleDateString()}</td>
+                  <td className="py-3 px-4 text-right text-text-subtle text-xs">{new Date(u.createdAt).toLocaleDateString()}</td>
                   <td className="py-3 px-4 text-right space-x-3">
                     <button
                       onClick={() => toggleBan(u.id, u.status)}
-                      className={`text-xs font-medium transition-colors ${u.status === "banned" ? "text-accent-green hover:text-accent-green/80" : "text-accent-red hover:text-accent-red/80"}`}
+                      className={`text-xs font-medium transition-colors ${u.status === "banned" ? "text-accent-long hover:text-accent-long/80" : "text-accent-short hover:text-accent-short/80"}`}
                     >
                       {u.status === "banned" ? "Unban" : "Ban"}
                     </button>
-                    <button onClick={() => setTrust(u.id)} className="text-xs text-accent-yellow hover:text-accent-yellow/80 font-medium transition-colors">
+                    <button onClick={() => setTrust(u.id)} className="text-xs text-warning hover:text-warning/80 font-medium transition-colors">
                       Trust
                     </button>
                   </td>
@@ -122,9 +122,9 @@ export default function AdminUsersPage() {
 
         {totalPages > 1 && (
           <div className="flex items-center justify-center gap-2 mt-4">
-            <button onClick={() => setPage(Math.max(1, page - 1))} disabled={page === 1} className="px-4 py-1.5 text-sm bg-surface-secondary hover:bg-surface-elevated rounded-[56px] disabled:opacity-50 transition-colors">Prev</button>
-            <span className="text-sm text-text-tertiary">{page} / {totalPages}</span>
-            <button onClick={() => setPage(Math.min(totalPages, page + 1))} disabled={page === totalPages} className="px-4 py-1.5 text-sm bg-surface-secondary hover:bg-surface-elevated rounded-[56px] disabled:opacity-50 transition-colors">Next</button>
+            <button onClick={() => setPage(Math.max(1, page - 1))} disabled={page === 1} className="px-4 py-1.5 text-sm bg-surface-3 hover:bg-surface-hover rounded disabled:opacity-50 transition-colors">Prev</button>
+            <span className="text-sm text-text-subtle">{page} / {totalPages}</span>
+            <button onClick={() => setPage(Math.min(totalPages, page + 1))} disabled={page === totalPages} className="px-4 py-1.5 text-sm bg-surface-3 hover:bg-surface-hover rounded disabled:opacity-50 transition-colors">Next</button>
           </div>
         )}
       </main>

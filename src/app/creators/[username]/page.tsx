@@ -53,8 +53,8 @@ export default function CreatorPage() {
         <Header />
         <main className="max-w-4xl mx-auto px-4 py-8">
           <div className="animate-pulse space-y-4">
-            <div className="h-32 bg-surface-elevated rounded-2xl" />
-            <div className="h-64 bg-surface-elevated rounded-2xl" />
+            <div className="h-32 bg-surface-hover rounded-md" />
+            <div className="h-64 bg-surface-hover rounded-md" />
           </div>
         </main>
       </>
@@ -65,7 +65,7 @@ export default function CreatorPage() {
     return (
       <>
         <Header />
-        <main className="max-w-4xl mx-auto px-4 py-8 text-center text-text-tertiary">
+        <main className="max-w-4xl mx-auto px-4 py-8 text-center text-text-subtle">
           Creator not found
         </main>
       </>
@@ -79,16 +79,16 @@ export default function CreatorPage() {
       <Header />
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Profile */}
-        <div className="bg-surface-card border border-border rounded-2xl p-6 mb-6">
+        <div className="bg-surface-1 border border-border rounded-md p-6 mb-6">
           <div className="flex items-center gap-4">
             {data.avatarUrl ? (
-              <img src={data.avatarUrl} alt="" className="w-16 h-16 rounded-full" />
+              <img src={data.avatarUrl} alt="" className="w-16 h-16 rounded" />
             ) : (
-              <div className="w-16 h-16 rounded-full bg-surface-secondary" />
+              <div className="w-16 h-16 rounded bg-surface-3" />
             )}
             <div>
               <h1 className="text-xl font-bold">{data.name}</h1>
-              <div className="flex items-center gap-2 text-sm text-text-tertiary">
+              <div className="flex items-center gap-2 text-sm text-text-subtle">
                 <span>@{data.username}</span>
                 {data.verified && (
                   <span className="text-brand font-medium">Verified</span>
@@ -97,7 +97,7 @@ export default function CreatorPage() {
               </div>
             </div>
             <div className="ml-auto text-right">
-              <div className="text-xs text-text-tertiary">Balance</div>
+              <div className="text-xs text-text-subtle">Balance</div>
               <div className="text-2xl font-bold text-brand">
                 {data.currentBalance.toLocaleString()}
               </div>
@@ -107,23 +107,23 @@ export default function CreatorPage() {
           {latestStat && (
             <div className="grid grid-cols-4 gap-4 mt-4 pt-4 border-t border-border">
               <div>
-                <div className="text-xs text-text-tertiary">Rank</div>
+                <div className="text-xs text-text-subtle">Rank</div>
                 <div className="text-lg font-semibold">#{latestStat.rank}</div>
               </div>
               <div>
-                <div className="text-xs text-text-tertiary">Mindshare</div>
-                <div className="text-lg font-semibold text-accent-cyan">
+                <div className="text-xs text-text-subtle">Mindshare</div>
+                <div className="text-lg font-semibold text-info">
                   {latestStat.mindsharePercent}%
                 </div>
               </div>
               <div>
-                <div className="text-xs text-text-tertiary">Daily Reward</div>
-                <div className="text-lg font-semibold text-accent-green">
+                <div className="text-xs text-text-subtle">Epoch Quota</div>
+                <div className="text-lg font-semibold text-accent-long">
                   +{latestStat.dailyReward.toLocaleString()}
                 </div>
               </div>
               <div>
-                <div className="text-xs text-text-tertiary">Total Earned</div>
+                <div className="text-xs text-text-subtle">Total Quota</div>
                 <div className="text-lg font-semibold">
                   {latestStat.totalReward.toLocaleString()}
                 </div>
@@ -134,17 +134,17 @@ export default function CreatorPage() {
 
         {/* Daily History */}
         {data.dailyStats.length > 0 && (
-          <div className="bg-surface-card border border-border rounded-2xl p-6 mb-6">
+          <div className="bg-surface-1 border border-border rounded-md p-6 mb-6">
             <h2 className="font-semibold mb-4">Daily History</h2>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-xs text-text-tertiary border-b border-border">
+                  <tr className="text-xs text-text-subtle border-b border-border">
                     <th className="text-left py-2">Date</th>
                     <th className="text-right py-2">Rank</th>
                     <th className="text-right py-2">Score</th>
                     <th className="text-right py-2">Mindshare</th>
-                    <th className="text-right py-2">Reward</th>
+                    <th className="text-right py-2">Quota</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -153,8 +153,8 @@ export default function CreatorPage() {
                       <td className="py-2">{new Date(s.date).toLocaleDateString()}</td>
                       <td className="text-right">#{s.rank}</td>
                       <td className="text-right">{s.indexScore.toFixed(1)}</td>
-                      <td className="text-right text-accent-cyan">{s.mindsharePercent}%</td>
-                      <td className="text-right text-accent-green">+{s.dailyReward}</td>
+                      <td className="text-right text-info">{s.mindsharePercent}%</td>
+                      <td className="text-right text-accent-long">+{s.dailyReward}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -192,7 +192,7 @@ export default function CreatorPage() {
             />
           ))}
           {data.tweets.length === 0 && (
-            <div className="text-center py-8 text-text-tertiary">No scored tweets yet</div>
+            <div className="text-center py-8 text-text-subtle">No scored tweets yet</div>
           )}
         </div>
       </main>

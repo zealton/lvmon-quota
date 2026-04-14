@@ -131,7 +131,8 @@ export async function runTweetScore() {
         let originalitySubscore: number;
         let formatSubscore: number;
 
-        if (tweet.score && tweet.status === "quality_scored") {
+        if (tweet.score) {
+          // Reuse existing quality score — never re-evaluate via LLM
           qualityScore = tweet.score.qualityScore;
           relevanceSubscore = tweet.score.relevanceSubscore || 0;
           originalitySubscore = tweet.score.originalitySubscore || 0;

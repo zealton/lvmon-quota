@@ -96,7 +96,7 @@ export default function AdminConfigPage() {
     alert("Config saved");
   };
 
-  if (!config) return <div className="p-8 text-center text-text-tertiary">Loading...</div>;
+  if (!config) return <div className="p-8 text-center text-text-subtle">Loading...</div>;
 
   const groups = new Map<string, string[]>();
   for (const [key, field] of Object.entries(CONFIG_FIELDS)) {
@@ -116,24 +116,24 @@ export default function AdminConfigPage() {
           {Array.from(groups.entries()).map(([groupName, keys]) => {
             const info = GROUP_DESCRIPTIONS[groupName];
             return (
-              <div key={groupName} className="bg-surface-card border border-border rounded-2xl p-6">
+              <div key={groupName} className="bg-surface-1 border border-border rounded-md p-6">
                 <h2 className="text-sm font-semibold text-brand uppercase tracking-wider mb-2">
                   {groupName}
                 </h2>
 
                 {info && (
-                  <div className="mb-4 text-xs text-text-tertiary space-y-1.5">
+                  <div className="mb-4 text-xs text-text-subtle space-y-1.5">
                     <p>{info.desc}</p>
                     {info.formula && (
-                      <div className="bg-surface-elevated border border-border rounded-xl px-3 py-2 font-mono text-accent-cyan">
+                      <div className="bg-surface-hover border border-border rounded px-3 py-2 font-mono text-info">
                         {info.formula}
                       </div>
                     )}
                     {info.rules && (
-                      <ul className="space-y-1 text-text-tertiary">
+                      <ul className="space-y-1 text-text-subtle">
                         {info.rules.map((rule, i) => (
                           <li key={i} className="flex gap-2">
-                            <span className="text-text-tertiary shrink-0">-</span>
+                            <span className="text-text-subtle shrink-0">-</span>
                             <span>{rule}</span>
                           </li>
                         ))}
@@ -161,7 +161,7 @@ export default function AdminConfigPage() {
                                   : e.target.value,
                             })
                           }
-                          className="flex-1 bg-surface-elevated border border-border rounded-xl px-3 py-2 text-sm focus:border-brand focus:outline-none transition-colors"
+                          className="flex-1 bg-surface-hover border border-border rounded px-3 py-2 text-sm focus:border-accent-long focus:outline-none transition-colors"
                         />
                       </div>
                     );
@@ -175,7 +175,7 @@ export default function AdminConfigPage() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="mt-6 w-full py-3 bg-brand hover:bg-brand-hover disabled:bg-surface-secondary text-white font-semibold rounded-[56px] transition-colors"
+          className="mt-6 w-full py-3 bg-accent-long hover:bg-accent-long-strong disabled:bg-surface-3 text-white font-semibold rounded transition-colors"
         >
           {saving ? "Saving..." : "Save Config"}
         </button>

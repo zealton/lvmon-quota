@@ -14,7 +14,7 @@ interface EpochParticipant {
 }
 
 interface EpochData {
-  epoch: { date: string; status: string; poolSize: number; totalScore: number; participantCount: number };
+  epoch: { number: number; date: string; status: string; poolSize: number; totalScore: number; participantCount: number };
   participants: EpochParticipant[];
 }
 
@@ -82,13 +82,13 @@ export default function EpochPage() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold">Epoch Settlement</h1>
-            <p className="text-sm text-text-tertiary mt-1">View and export epoch data for LeverUp backend integration</p>
+            <p className="text-sm text-text-subtle mt-1">View and export epoch data for LeverUp backend integration</p>
           </div>
           <div className="flex gap-2">
-            <button onClick={copyJSON} disabled={!data} className="px-5 py-2 bg-surface-secondary hover:bg-surface-elevated disabled:opacity-50 rounded-[56px] text-sm font-medium transition-colors">
+            <button onClick={copyJSON} disabled={!data} className="px-5 py-2 bg-surface-3 hover:bg-surface-hover disabled:opacity-50 rounded text-sm font-medium transition-colors">
               Copy JSON
             </button>
-            <button onClick={exportCSV} disabled={!data} className="px-5 py-2 bg-brand hover:bg-brand-hover disabled:opacity-50 text-white rounded-[56px] text-sm font-medium transition-colors">
+            <button onClick={exportCSV} disabled={!data} className="px-5 py-2 bg-accent-long hover:bg-accent-long-strong disabled:opacity-50 text-white rounded text-sm font-medium transition-colors">
               Export CSV
             </button>
           </div>
@@ -100,8 +100,8 @@ export default function EpochPage() {
             <button
               key={m}
               onClick={() => setMode(m)}
-              className={`px-4 py-1.5 text-sm rounded-[56px] font-medium transition-colors ${
-                mode === m ? "bg-brand text-white" : "bg-surface-secondary text-text-secondary hover:bg-surface-elevated"
+              className={`px-4 py-1.5 text-sm rounded font-medium transition-colors ${
+                mode === m ? "bg-accent-long text-white" : "bg-surface-3 text-text-secondary hover:bg-surface-hover"
               }`}
             >
               {m === "current" ? "Current (Live)" : m === "latest" ? "Latest Settled" : "By Date"}
@@ -112,7 +112,7 @@ export default function EpochPage() {
               type="date"
               value={customDate}
               onChange={(e) => setCustomDate(e.target.value)}
-              className="bg-surface-elevated border border-border rounded-xl px-3 py-1.5 text-sm focus:border-brand focus:outline-none"
+              className="bg-surface-hover border border-border rounded px-3 py-1.5 text-sm focus:border-accent-long focus:outline-none"
             />
           )}
         </div>
@@ -120,68 +120,72 @@ export default function EpochPage() {
         {loading ? (
           <div className="animate-pulse space-y-3">
             {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="h-12 bg-surface-elevated rounded-xl" />
+              <div key={i} className="h-12 bg-surface-hover rounded" />
             ))}
           </div>
         ) : !data ? (
-          <div className="text-center py-16 text-text-tertiary">
+          <div className="text-center py-16 text-text-subtle">
             <p className="text-lg">No epoch data found</p>
             <p className="text-sm mt-1">Run a daily settlement first, or switch to "Current (Live)" view.</p>
           </div>
         ) : (
           <>
             {/* Epoch summary */}
-            <div className="grid grid-cols-4 gap-4 mb-6">
-              <div className="bg-surface-card border border-border rounded-2xl p-4">
-                <div className="text-xs text-text-tertiary">Epoch</div>
-                <div className="text-lg font-bold">{data.epoch.date}</div>
-                <div className={`text-xs font-medium mt-1 ${
-                  data.epoch.status === "settled" ? "text-accent-green" :
-                  data.epoch.status === "live" ? "text-accent-yellow" : "text-text-tertiary"
+            <div className="grid grid-cols-5 gap-4 mb-6">
+              <div className="bg-surface-1 border border-border rounded-md p-4">
+                <div className="text-xs text-text-subtle">Epoch</div>
+                <div className="text-lg font-bold">#{data.epoch.number ?? "-"}</div>
+                <div className="text-xs text-text-subtle mt-1">{data.epoch.date}</div>
+              </div>
+              <div className="bg-surface-1 border border-border rounded-md p-4">
+                <div className="text-xs text-text-subtle">Status</div>
+                <div className={`text-lg font-bold ${
+                  data.epoch.status === "settled" ? "text-accent-long" :
+                  data.epoch.status === "live" ? "text-warning" : "text-text-subtle"
                 }`}>{data.epoch.status}</div>
               </div>
-              <div className="bg-surface-card border border-border rounded-2xl p-4">
-                <div className="text-xs text-text-tertiary">Pool Size</div>
-                <div className="text-lg font-bold text-brand">{data.epoch.poolSize.toLocaleString()} <span className="text-sm font-normal text-text-tertiary">LVMON</span></div>
+              <div className="bg-surface-1 border border-border rounded-md p-4">
+                <div className="text-xs text-text-subtle">Pool Size</div>
+                <div className="text-lg font-bold text-brand">{data.epoch.poolSize.toLocaleString()}</div>
               </div>
-              <div className="bg-surface-card border border-border rounded-2xl p-4">
-                <div className="text-xs text-text-tertiary">Total Score</div>
+              <div className="bg-surface-1 border border-border rounded-md p-4">
+                <div className="text-xs text-text-subtle">Total Score</div>
                 <div className="text-lg font-bold">{data.epoch.totalScore}</div>
               </div>
-              <div className="bg-surface-card border border-border rounded-2xl p-4">
-                <div className="text-xs text-text-tertiary">Participants</div>
+              <div className="bg-surface-1 border border-border rounded-md p-4">
+                <div className="text-xs text-text-subtle">Participants</div>
                 <div className="text-lg font-bold">{data.epoch.participantCount}</div>
               </div>
             </div>
 
             {/* API endpoint info */}
-            <div className="bg-surface-card border border-border rounded-2xl p-4 mb-6">
-              <div className="text-xs text-text-tertiary mb-1">API Endpoint</div>
-              <code className="text-sm text-accent-cyan font-mono break-all">
+            <div className="bg-surface-1 border border-border rounded-md p-4 mb-6">
+              <div className="text-xs text-text-subtle mb-1">API Endpoint</div>
+              <code className="text-sm text-info font-mono break-all">
                 GET /api/epoch/{data.epoch.date}
               </code>
             </div>
 
             {/* Participants table */}
-            <div className="bg-surface-card border border-border rounded-2xl overflow-hidden">
+            <div className="bg-surface-1 border border-border rounded-md overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-xs text-text-tertiary border-b border-border">
+                  <tr className="text-xs text-text-subtle border-b border-border">
                     <th className="text-left py-3 px-4">#</th>
                     <th className="text-left py-3 px-4">Twitter</th>
                     <th className="text-left py-3 px-4">Wallet</th>
                     <th className="text-right py-3 px-4">Score</th>
                     <th className="text-right py-3 px-4">Mindshare</th>
-                    <th className="text-right py-3 px-4">LVMON Quota</th>
+                    <th className="text-right py-3 px-4">Quota</th>
                   </tr>
                 </thead>
                 <tbody>
                   {data.participants.map((p) => (
-                    <tr key={p.rank} className="border-b border-border hover:bg-surface-elevated/50 transition-colors">
-                      <td className="py-2.5 px-4 font-mono text-text-tertiary">{p.rank}</td>
+                    <tr key={p.rank} className="border-b border-border hover:bg-surface-hover/50 transition-colors">
+                      <td className="py-2.5 px-4 font-mono text-text-subtle">{p.rank}</td>
                       <td className="py-2.5 px-4">
                         <div className="font-medium">{p.twitter.name || p.twitter.username}</div>
-                        <div className="text-xs text-text-tertiary">
+                        <div className="text-xs text-text-subtle">
                           @{p.twitter.username || "?"}
                           {p.twitter.verified && <span className="ml-1 text-brand">verified</span>}
                           <span className="ml-1">· {p.twitter.followersCount.toLocaleString()} followers</span>
@@ -193,14 +197,14 @@ export default function EpochPage() {
                             {p.wallet.slice(0, 6)}...{p.wallet.slice(-4)}
                           </span>
                         ) : (
-                          <span className="text-text-tertiary">--</span>
+                          <span className="text-text-subtle">--</span>
                         )}
                       </td>
-                      <td className="py-2.5 px-4 text-right font-mono text-accent-green">{p.score.best}</td>
-                      <td className="py-2.5 px-4 text-right font-mono text-accent-cyan">{p.mindsharePercent}%</td>
+                      <td className="py-2.5 px-4 text-right font-mono text-accent-long">{p.score.best}</td>
+                      <td className="py-2.5 px-4 text-right font-mono text-info">{p.mindsharePercent}%</td>
                       <td className="py-2.5 px-4 text-right">
                         <span className="font-semibold text-brand">{p.quota.toLocaleString()}</span>
-                        <span className="text-xs text-text-tertiary ml-1">LVMON</span>
+                        <span className="text-xs text-text-subtle ml-1">Quota</span>
                       </td>
                     </tr>
                   ))}

@@ -45,7 +45,7 @@ export function LeaderboardTable() {
     return (
       <div className="animate-pulse space-y-3">
         {Array.from({ length: 10 }).map((_, i) => (
-          <div key={i} className="h-14 bg-surface-elevated rounded-xl" />
+          <div key={i} className="h-14 bg-surface-hover rounded" />
         ))}
       </div>
     );
@@ -53,7 +53,7 @@ export function LeaderboardTable() {
 
   if (!data || data.items.length === 0) {
     return (
-      <div className="text-center py-12 text-text-tertiary">
+      <div className="text-center py-12 text-text-subtle">
         <p className="text-lg">No leaderboard data yet</p>
         <p className="text-sm mt-1">Be the first to post about @LeverUp_xyz on X!</p>
       </div>
@@ -63,9 +63,9 @@ export function LeaderboardTable() {
   return (
     <div>
       {data.pool && (
-        <div className="flex items-center gap-4 mb-4 text-sm text-text-tertiary">
+        <div className="flex items-center gap-4 mb-4 text-sm text-text-subtle">
           <span>Date: {data.date}</span>
-          <span>Pool: <span className="text-brand font-medium">{data.pool.quotaAmount.toLocaleString()} LVMON</span></span>
+          <span>Epoch Quota Pool: <span className="text-brand font-medium">{data.pool.quotaAmount.toLocaleString()}</span></span>
           <span>Status: {data.pool.status}</span>
           <span>Participants: {data.pagination.total}</span>
         </div>
@@ -74,13 +74,13 @@ export function LeaderboardTable() {
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="text-xs text-text-tertiary uppercase tracking-wider border-b border-border">
+            <tr className="text-xs text-text-subtle uppercase tracking-wider border-b border-border">
               <th className="text-left py-3 px-4">#</th>
               <th className="text-left py-3 px-4">Account</th>
               <th className="text-right py-3 px-4">Index</th>
               <th className="text-right py-3 px-4">Mindshare</th>
-              <th className="text-right py-3 px-4">Daily Reward</th>
-              <th className="text-right py-3 px-4">Total Reward</th>
+              <th className="text-right py-3 px-4">Epoch Quota</th>
+              <th className="text-right py-3 px-4">Total Quota</th>
             </tr>
           </thead>
           <tbody>
@@ -89,16 +89,16 @@ export function LeaderboardTable() {
               return (
                 <tr
                   key={item.userId}
-                  className={`border-b border-border hover:bg-surface-elevated/50 transition-colors ${
-                    isCurrentUser ? "bg-brand/5" : ""
+                  className={`border-b border-border hover:bg-surface-hover/50 transition-colors ${
+                    isCurrentUser ? "bg-accent-long/5" : ""
                   }`}
                 >
                   <td className="py-3 px-4">
                     <span
                       className={`font-mono text-sm ${
                         item.rank <= 3
-                          ? "text-accent-yellow font-bold"
-                          : "text-text-tertiary"
+                          ? "text-warning font-bold"
+                          : "text-text-subtle"
                       }`}
                     >
                       {item.rank}
@@ -113,10 +113,10 @@ export function LeaderboardTable() {
                         <img
                           src={item.avatarUrl}
                           alt=""
-                          className="w-8 h-8 rounded-full"
+                          className="w-8 h-8 rounded"
                         />
                       ) : (
-                        <div className="w-8 h-8 rounded-full bg-surface-secondary" />
+                        <div className="w-8 h-8 rounded bg-surface-3" />
                       )}
                       <div>
                         <div className="font-medium text-sm">
@@ -125,18 +125,18 @@ export function LeaderboardTable() {
                             <span className="ml-1 text-xs text-brand">(You)</span>
                           )}
                         </div>
-                        <div className="text-xs text-text-tertiary">@{item.username}</div>
+                        <div className="text-xs text-text-subtle">@{item.username}</div>
                       </div>
                     </Link>
                   </td>
                   <td className="py-3 px-4 text-right font-mono text-sm">
                     {item.indexScore.toFixed(1)}
                   </td>
-                  <td className="py-3 px-4 text-right font-mono text-sm text-accent-cyan">
+                  <td className="py-3 px-4 text-right font-mono text-sm text-info">
                     {item.mindsharePercent}%
                   </td>
                   <td className="py-3 px-4 text-right">
-                    <span className="font-mono text-sm text-accent-green">
+                    <span className="font-mono text-sm text-accent-long">
                       +{item.dailyReward.toLocaleString()}
                     </span>
                   </td>
@@ -155,17 +155,17 @@ export function LeaderboardTable() {
           <button
             onClick={() => setPage(Math.max(1, page - 1))}
             disabled={page === 1}
-            className="px-4 py-1.5 text-sm bg-surface-secondary hover:bg-surface-elevated rounded-[56px] disabled:opacity-50 transition-colors"
+            className="px-4 py-1.5 text-sm bg-surface-3 hover:bg-surface-hover rounded disabled:opacity-50 transition-colors"
           >
             Prev
           </button>
-          <span className="text-sm text-text-tertiary">
+          <span className="text-sm text-text-subtle">
             {page} / {data.pagination.totalPages}
           </span>
           <button
             onClick={() => setPage(Math.min(data.pagination.totalPages, page + 1))}
             disabled={page === data.pagination.totalPages}
-            className="px-4 py-1.5 text-sm bg-surface-secondary hover:bg-surface-elevated rounded-[56px] disabled:opacity-50 transition-colors"
+            className="px-4 py-1.5 text-sm bg-surface-3 hover:bg-surface-hover rounded disabled:opacity-50 transition-colors"
           >
             Next
           </button>

@@ -205,20 +205,17 @@ export async function GET(req: NextRequest) {
   const config = await getConfig();
   const dailyPool = config.daily_quota_pool;
 
-  // Get historical total rewards from settled pools
+  // Get historical total rewards from settled pools (bound users)
   const allSettledIssuances = await prisma.quotaIssuance.findMany({
-    select: { userId: true, quotaAmount: true },
+    include: { user: { include: { socialAccounts: { where: { provider: "x" }, select: { providerUserId: true }, take: 1 } } } },
   });
-  const historicalRewards = new Map<string, number>();
+  const historicalRewardsByXId = new Map<string, number>();
   for (const iss of allSettledIssuances) {
-    historicalRewards.set(iss.userId, (historicalRewards.get(iss.userId) || 0) + iss.quotaAmount);
+    const xId = iss.user.socialAccounts[0]?.providerUserId;
+    if (xId) {
+      historicalRewardsByXId.set(xId, (historicalRewardsByXId.get(xId) || 0) + iss.quotaAmount);
+    }
   }
-
-  // Also check settled daily quota pools for unbound user distributions
-  const settledPools = await prisma.dailyQuotaPool.findMany({
-    where: { status: "settled" },
-    select: { poolDate: true, quotaAmount: true, totalScore: true },
-  });
 
   // Paginate
   const paged = sorted.slice((page - 1) * limit, page * limit);
@@ -239,7 +236,7 @@ export async function GET(req: NextRequest) {
       bestScore: Math.round(a.bestScore * 100) / 100,
       mindsharePercent,
       dailyReward,
-      totalReward: dailyReward,
+      totalReward: (historicalRewardsByXId.get(a.authorXUserId) || 0) + dailyReward,
       tweetCount: a.tweetCount,
       totalLikes: a.totalLikes,
       totalRetweets: a.totalRetweets,

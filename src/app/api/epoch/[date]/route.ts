@@ -125,8 +125,14 @@ export async function GET(
     };
   });
 
+  // Calculate epoch number: count all settled pools up to and including this date
+  const epochNumber = await prisma.dailyQuotaPool.count({
+    where: { poolDate: { lte: targetDate }, status: { not: "open" } },
+  });
+
   return NextResponse.json({
     epoch: {
+      number: epochNumber,
       date: targetDate.toISOString().split("T")[0],
       status: pool.status,
       poolSize: pool.quotaAmount,
@@ -235,8 +241,14 @@ async function getCurrentEpoch(config: { daily_quota_pool: number }) {
       : 0,
   }));
 
+  // Epoch number = total settled pools + 1 (current)
+  const settledCount = await prisma.dailyQuotaPool.count({
+    where: { status: { not: "open" } },
+  });
+
   return NextResponse.json({
     epoch: {
+      number: settledCount + 1,
       date: "current",
       status: "live",
       poolSize: pool,

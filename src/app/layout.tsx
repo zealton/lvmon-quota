@@ -3,8 +3,8 @@ import { SessionProvider } from "next-auth/react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "LVMON Quota - LeverUp Mindshare Campaign",
-  description: "Earn LVMON quota by promoting LeverUp on X",
+  title: "LVMON Quota - Tweet to Earn Stake Quota",
+  description: "Earn LVMON Stake quota by tweeting about LeverUp on X",
 };
 
 export default function RootLayout({
@@ -14,7 +14,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark">
-      <body className="bg-surface-dark text-text-primary min-h-screen antialiased">
+      <body className="bg-bg-canvas text-text-primary min-h-screen antialiased font-sans">
         <SessionProvider>{children}</SessionProvider>
       </body>
     </html>

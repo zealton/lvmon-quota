@@ -1,6 +1,7 @@
 import NextAuth from "next-auth";
 import Twitter from "next-auth/providers/twitter";
 import { prisma } from "./prisma";
+import { ADMIN_USERNAMES } from "./admin-auth";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
@@ -30,10 +31,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         },
       });
 
+      const isAdmin = ADMIN_USERNAMES.includes(username);
+
       if (!dbUser) {
         dbUser = await prisma.user.create({
           data: {
             displayName: user.name || username,
+            role: isAdmin ? "admin" : "user",
             socialAccounts: {
               create: {
                 provider: "x",
@@ -64,6 +68,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             username: username || undefined,
           },
         });
+        // Auto-promote to admin if in whitelist
+        if (isAdmin && dbUser.role !== "admin") {
+          await prisma.user.update({
+            where: { id: dbUser.id },
+            data: { role: "admin" },
+          });
+        }
       }
 
       return true;
