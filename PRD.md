@@ -34,10 +34,12 @@ Tweet Published on X
       - Re-evaluates ALL unsettled tweets each run (scores grow as engagement accumulates)
         |
         v
-  [4] Daily Settlement (daily-settlement)
+  [4] Epoch Settlement (epoch-settle-export)
+      - Automatically triggered at each epoch boundary
       - Take each user's best tweet
-      - Distribute daily quota pool proportionally
+      - Distribute quota pool proportionally
       - Record issuances and ledger entries
+      - Export CSV file to /public/exports/ for contract integration
         |
         v
   [5] Quota Expiry (quota-expiry)
@@ -308,10 +310,12 @@ Two independent schedulers with on/off toggle and configurable intervals:
 | Scheduler | Default Interval | Function |
 |-----------|-----------------|----------|
 | Tweet Scan + Quality Score | 15 min | Search X for new tweets, immediately score content quality |
-| Engagement Score | 30 min | Score tweets past observation window with engagement data |
+| Engagement Score | 15 min | Score tweets past observation window, re-evaluate all unsettled tweets |
+| Epoch Settlement | 5 min | Check if previous epoch needs settling, auto-settle + export CSV |
 
 - Scheduler state persisted in database, restored on app restart
 - UI toggle directly controls actual scheduler state
+- Epoch Settlement checks every N minutes if the previous epoch has ended and hasn't been settled yet. If so, it automatically runs settlement and exports a CSV file to `/public/exports/epoch-{N}-{date}.csv` for contract integration
 
 ### 9.2 Manual Triggers
 
@@ -382,7 +386,17 @@ Optional auth: `?key=xxx` (set `EPOCH_API_KEY` env var for production).
 }
 ```
 
-### 10.3 Admin Epoch Page
+### 10.3 Auto CSV Export
+
+When epoch settlement runs (automatically or manually), a CSV file is exported to:
+- `/public/exports/epoch-{N}-{YYYY-MM-DD}.csv` — numbered by epoch
+- `/public/exports/latest.csv` — always points to the most recent settlement
+
+CSV columns: `epoch, date, rank, twitter_username, wallet, followers, verified, quality_score, engagement_score, trust_multiplier, final_score, mindshare_pct, quota`
+
+This file is intended for the LeverUp smart contract to read and set staking quotas per wallet.
+
+### 10.4 Admin Epoch Page
 
 Available at `/admin/epoch`:
 - View current, latest, or historical epoch data

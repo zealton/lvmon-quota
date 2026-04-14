@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const { jobKey, enabled, intervalMinutes } = body;
 
-  if (!jobKey || !["tweetIngest", "tweetScore"].includes(jobKey)) {
+  if (!jobKey || !["tweetIngest", "tweetScore", "epochSettle"].includes(jobKey)) {
     return NextResponse.json({ error: "Invalid jobKey" }, { status: 400 });
   }
 

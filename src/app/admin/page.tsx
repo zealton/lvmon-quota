@@ -25,6 +25,7 @@ interface SchedulerJobState {
 interface SchedulerState {
   tweetIngest: SchedulerJobState;
   tweetScore: SchedulerJobState;
+  epochSettle: SchedulerJobState;
 }
 
 function RecentJobRuns({ jobs }: { jobs: DashboardData["recentJobs"] }) {
@@ -99,6 +100,7 @@ export default function AdminDashboard() {
   // Editable interval inputs
   const [ingestInterval, setIngestInterval] = useState(15);
   const [scoreInterval, setScoreInterval] = useState(30);
+  const [settleInterval, setSettleInterval] = useState(5);
 
   const fetchDashboard = useCallback(() => {
     fetch("/api/admin/dashboard")
@@ -114,6 +116,7 @@ export default function AdminDashboard() {
         setScheduler(s);
         setIngestInterval(s.tweetIngest.intervalMinutes);
         setScoreInterval(s.tweetScore.intervalMinutes);
+        setSettleInterval(s.epochSettle.intervalMinutes);
       })
       .catch(console.error);
   }, []);
@@ -129,7 +132,7 @@ export default function AdminDashboard() {
     return () => clearInterval(id);
   }, [fetchScheduler]);
 
-  const toggleScheduler = async (jobKey: "tweetIngest" | "tweetScore", enabled: boolean, intervalMinutes: number) => {
+  const toggleScheduler = async (jobKey: "tweetIngest" | "tweetScore" | "epochSettle", enabled: boolean, intervalMinutes: number) => {
     const res = await fetch("/api/admin/scheduler", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -139,7 +142,7 @@ export default function AdminDashboard() {
     if (result.state) setScheduler(result.state);
   };
 
-  const updateInterval = async (jobKey: "tweetIngest" | "tweetScore", intervalMinutes: number) => {
+  const updateInterval = async (jobKey: "tweetIngest" | "tweetScore" | "epochSettle", intervalMinutes: number) => {
     const enabled = jobKey === "tweetIngest" ? scheduler?.tweetIngest.enabled : scheduler?.tweetScore.enabled;
     await toggleScheduler(jobKey, !!enabled, intervalMinutes);
   };
@@ -272,10 +275,15 @@ export default function AdminDashboard() {
             </div>
             <svg className="w-5 h-5 text-text-subtle shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" /></svg>
             <div className="flex items-center gap-2 px-4 py-2 bg-surface-3 rounded">
-              <div className="w-2 h-2 rounded bg-text-tertiary" />
+              <div className={`w-2 h-2 rounded ${scheduler?.epochSettle.enabled ? "bg-accent-long" : "bg-text-subtle"}`} />
               <div>
-                <div className="font-medium">Settlement</div>
-                <div className="text-xs text-text-subtle">Manual — distribute daily quota</div>
+                <div className="font-medium">Settlement + CSV</div>
+                <div className="text-xs text-text-subtle">
+                  {scheduler?.epochSettle.enabled
+                    ? <span className="text-accent-long">Auto every {scheduler.epochSettle.intervalMinutes}min</span>
+                    : <span>Manual only</span>
+                  }
+                </div>
               </div>
             </div>
           </div>
@@ -288,7 +296,7 @@ export default function AdminDashboard() {
             Enable automatic scanning and scoring. When active, jobs run on the configured interval.
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Ingest Scheduler */}
             <div className={`border rounded-md p-5 transition-colors ${
               scheduler?.tweetIngest.enabled
@@ -388,6 +396,58 @@ export default function AdminDashboard() {
                   }`} />
                   {scheduler.tweetScore.running ? "Running now..." : (
                     <>Last run: {new Date(scheduler.tweetScore.lastRunAt).toLocaleString()} ({scheduler.tweetScore.lastRunStatus})</>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Epoch Settlement Scheduler */}
+            <div className={`border rounded-md p-5 transition-colors ${
+              scheduler?.epochSettle.enabled
+                ? "border-accent-long/30 bg-accent-long-bg"
+                : "border-border bg-surface-2"
+            }`}>
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <div className="font-semibold text-sm">Epoch Settlement</div>
+                  <div className="text-xs text-text-subtle mt-0.5">
+                    Auto-settles previous epoch and exports CSV for contract integration
+                  </div>
+                </div>
+                <button
+                  onClick={() => toggleScheduler("epochSettle", !scheduler?.epochSettle.enabled, settleInterval)}
+                  className={`relative w-12 h-6 rounded transition-colors ${
+                    scheduler?.epochSettle.enabled ? "bg-accent-long" : "bg-surface-3"
+                  }`}
+                >
+                  <div className={`absolute top-0.5 w-5 h-5 bg-white rounded transition-transform ${
+                    scheduler?.epochSettle.enabled ? "translate-x-6" : "translate-x-0.5"
+                  }`} />
+                </button>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <label className="text-xs text-text-subtle">Check every</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="1440"
+                  value={settleInterval}
+                  onChange={(e) => setSettleInterval(parseInt(e.target.value) || 5)}
+                  onBlur={() => updateInterval("epochSettle", settleInterval)}
+                  className="w-20 bg-bg-canvas border border-border rounded px-3 py-1.5 text-sm text-center focus:border-accent-long focus:outline-none"
+                />
+                <label className="text-xs text-text-subtle">minutes</label>
+              </div>
+
+              {scheduler?.epochSettle.lastRunAt && (
+                <div className="mt-3 pt-3 border-t border-border flex items-center gap-2 text-xs text-text-subtle">
+                  <span className={`w-1.5 h-1.5 rounded ${
+                    scheduler.epochSettle.running ? "bg-warning animate-pulse" :
+                    scheduler.epochSettle.lastRunStatus === "completed" ? "bg-accent-long" : "bg-accent-short"
+                  }`} />
+                  {scheduler.epochSettle.running ? "Running now..." : (
+                    <>Last run: {new Date(scheduler.epochSettle.lastRunAt).toLocaleString()} ({scheduler.epochSettle.lastRunStatus})</>
                   )}
                 </div>
               )}

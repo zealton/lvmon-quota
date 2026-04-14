@@ -30,6 +30,8 @@ async function getSchedulerConfig() {
           "scheduler_ingest_interval_minutes",
           "scheduler_score_enabled",
           "scheduler_score_interval_minutes",
+          "scheduler_settle_enabled",
+          "scheduler_settle_interval_minutes",
         ],
       },
     },
@@ -40,6 +42,8 @@ async function getSchedulerConfig() {
     ingestInterval: parseInt(map.get("scheduler_ingest_interval_minutes") || "15") || 15,
     scoreEnabled: map.get("scheduler_score_enabled") === "true",
     scoreInterval: parseInt(map.get("scheduler_score_interval_minutes") || "30") || 30,
+    settleEnabled: map.get("scheduler_settle_enabled") === "true",
+    settleInterval: parseInt(map.get("scheduler_settle_interval_minutes") || "5") || 5,
   };
 }
 
@@ -52,6 +56,7 @@ function minutesToCron(minutes: number): string {
 
 let ingestTask: cron.ScheduledTask | null = null;
 let scoreTask: cron.ScheduledTask | null = null;
+let settleTask: cron.ScheduledTask | null = null;
 
 async function syncScheduler() {
   const config = await getSchedulerConfig();
@@ -78,6 +83,18 @@ async function syncScheduler() {
     console.log(`[Worker] tweet-score scheduled every ${config.scoreInterval}min`);
   } else {
     console.log(`[Worker] tweet-score disabled`);
+  }
+
+  // Epoch Settlement
+  if (settleTask) { settleTask.stop(); settleTask = null; }
+  if (config.settleEnabled) {
+    const { runEpochSettleAndExport } = await import("./src/jobs/epoch-settle-export");
+    settleTask = cron.schedule(minutesToCron(config.settleInterval), () => {
+      runJob("epoch-settle", runEpochSettleAndExport);
+    });
+    console.log(`[Worker] epoch-settle scheduled every ${config.settleInterval}min`);
+  } else {
+    console.log(`[Worker] epoch-settle disabled`);
   }
 }
 

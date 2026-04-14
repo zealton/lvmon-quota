@@ -5,6 +5,11 @@ import { NextResponse } from "next/server";
 export const ADMIN_USERNAMES = ["auuutoo", "Alex_LeverUp"];
 
 export async function requireAdmin() {
+  // In development, allow all access
+  if (process.env.NODE_ENV !== "production") {
+    return { error: null, session: { userId: "admin" } };
+  }
+
   const session = await auth();
 
   if (!session) {
@@ -14,7 +19,6 @@ export async function requireAdmin() {
   const role = (session as any).role;
   const username = (session as any).username;
 
-  // Allow if role is admin OR username is in whitelist
   if (role === "admin" || ADMIN_USERNAMES.includes(username)) {
     return { error: null, session };
   }

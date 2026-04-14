@@ -12,18 +12,21 @@ export interface SchedulerJobState {
 export interface SchedulerState {
   tweetIngest: SchedulerJobState;
   tweetScore: SchedulerJobState;
+  epochSettle: SchedulerJobState;
 }
 
 // In-memory task references
 const tasks: Record<string, ScheduledTask | null> = {
   tweetIngest: null,
   tweetScore: null,
+  epochSettle: null,
 };
 
 // In-memory running state
 const runningState: Record<string, boolean> = {
   tweetIngest: false,
   tweetScore: false,
+  epochSettle: false,
 };
 
 // Config keys in AppConfig
@@ -36,14 +39,19 @@ const CONFIG_KEYS = {
     enabled: "scheduler_score_enabled",
     interval: "scheduler_score_interval_minutes",
   },
+  epochSettle: {
+    enabled: "scheduler_settle_enabled",
+    interval: "scheduler_settle_interval_minutes",
+  },
 };
 
 const DEFAULTS = {
   tweetIngest: { enabled: false, intervalMinutes: 15 },
   tweetScore: { enabled: false, intervalMinutes: 30 },
+  epochSettle: { enabled: false, intervalMinutes: 5 },
 };
 
-async function getJobConfig(jobKey: "tweetIngest" | "tweetScore") {
+async function getJobConfig(jobKey: JobKey) {
   const keys = CONFIG_KEYS[jobKey];
   const defaults = DEFAULTS[jobKey];
 
@@ -78,7 +86,9 @@ function minutesToCron(minutes: number): string {
   return `0 */${hours} * * *`;
 }
 
-async function runJob(jobKey: "tweetIngest" | "tweetScore") {
+type JobKey = "tweetIngest" | "tweetScore" | "epochSettle";
+
+async function runJob(jobKey: JobKey) {
   if (runningState[jobKey]) return;
   runningState[jobKey] = true;
 
@@ -86,9 +96,12 @@ async function runJob(jobKey: "tweetIngest" | "tweetScore") {
     if (jobKey === "tweetIngest") {
       const { runTweetIngest } = await import("@/jobs/tweet-ingest");
       await runTweetIngest();
-    } else {
+    } else if (jobKey === "tweetScore") {
       const { runTweetScore } = await import("@/jobs/tweet-score");
       await runTweetScore();
+    } else if (jobKey === "epochSettle") {
+      const { runEpochSettleAndExport } = await import("@/jobs/epoch-settle-export");
+      await runEpochSettleAndExport();
     }
   } catch (err) {
     console.error(`Scheduler error [${jobKey}]:`, err);
@@ -97,7 +110,7 @@ async function runJob(jobKey: "tweetIngest" | "tweetScore") {
   }
 }
 
-function startTask(jobKey: "tweetIngest" | "tweetScore", intervalMinutes: number) {
+function startTask(jobKey: JobKey, intervalMinutes: number) {
   if (tasks[jobKey]) {
     tasks[jobKey]!.stop();
     tasks[jobKey] = null;
@@ -109,7 +122,7 @@ function startTask(jobKey: "tweetIngest" | "tweetScore", intervalMinutes: number
   });
 }
 
-function stopTask(jobKey: "tweetIngest" | "tweetScore") {
+function stopTask(jobKey: JobKey) {
   if (tasks[jobKey]) {
     tasks[jobKey]!.stop();
     tasks[jobKey] = null;
@@ -120,7 +133,7 @@ function stopTask(jobKey: "tweetIngest" | "tweetScore") {
  * Sync in-memory task state with DB.
  * Call this on startup and after any config change to ensure consistency.
  */
-async function syncTask(jobKey: "tweetIngest" | "tweetScore") {
+async function syncTask(jobKey: JobKey) {
   const config = await getJobConfig(jobKey);
   const taskIsRunning = tasks[jobKey] !== null;
 
@@ -138,24 +151,23 @@ async function syncTask(jobKey: "tweetIngest" | "tweetScore") {
 
 export async function getSchedulerState(): Promise<SchedulerState> {
   // Always read from DB as the single source of truth
-  const [ingestConfig, scoreConfig, ingestLast, scoreLast] = await Promise.all([
+  const [ingestConfig, scoreConfig, settleConfig, ingestLast, scoreLast, settleLast] = await Promise.all([
     getJobConfig("tweetIngest"),
     getJobConfig("tweetScore"),
+    getJobConfig("epochSettle"),
     getLastRun("tweet-ingest"),
     getLastRun("tweet-score"),
+    getLastRun("daily-settlement"),
   ]);
 
   // Ensure in-memory tasks match DB state
-  // (handles edge cases like hot-reloads or stale memory)
-  if (ingestConfig.enabled && !tasks.tweetIngest) {
-    startTask("tweetIngest", ingestConfig.intervalMinutes);
-  } else if (!ingestConfig.enabled && tasks.tweetIngest) {
-    stopTask("tweetIngest");
-  }
-  if (scoreConfig.enabled && !tasks.tweetScore) {
-    startTask("tweetScore", scoreConfig.intervalMinutes);
-  } else if (!scoreConfig.enabled && tasks.tweetScore) {
-    stopTask("tweetScore");
+  for (const [key, config] of Object.entries({ tweetIngest: ingestConfig, tweetScore: scoreConfig, epochSettle: settleConfig })) {
+    const k = key as JobKey;
+    if (config.enabled && !tasks[k]) {
+      startTask(k, config.intervalMinutes);
+    } else if (!config.enabled && tasks[k]) {
+      stopTask(k);
+    }
   }
 
   return {
@@ -173,11 +185,18 @@ export async function getSchedulerState(): Promise<SchedulerState> {
       lastRunStatus: scoreLast.lastRunStatus,
       running: runningState.tweetScore,
     },
+    epochSettle: {
+      enabled: settleConfig.enabled,
+      intervalMinutes: settleConfig.intervalMinutes,
+      lastRunAt: settleLast.lastRunAt,
+      lastRunStatus: settleLast.lastRunStatus,
+      running: runningState.epochSettle,
+    },
   };
 }
 
 export async function setSchedulerJob(
-  jobKey: "tweetIngest" | "tweetScore",
+  jobKey: JobKey,
   update: { enabled?: boolean; intervalMinutes?: number }
 ) {
   const keys = CONFIG_KEYS[jobKey];
@@ -208,7 +227,7 @@ export async function setSchedulerJob(
  * Initialize scheduler on app startup — sync all tasks with DB state
  */
 export async function initScheduler() {
-  for (const jobKey of ["tweetIngest", "tweetScore"] as const) {
+  for (const jobKey of ["tweetIngest", "tweetScore", "epochSettle"] as const) {
     await syncTask(jobKey);
     const config = await getJobConfig(jobKey);
     if (config.enabled) {
