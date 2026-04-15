@@ -9,7 +9,7 @@ interface DashboardData {
   totalUsers: number;
   totalTweets: number;
   tweetsByStatus: Record<string, number>;
-  currentConfig: { search_handle: string; max_search_results: number; daily_quota_pool: number; tweet_observation_window_hours: number };
+  currentConfig: { search_handle: string; max_search_results: number; daily_quota_pool: number; epoch_duration_hours: number; tweet_observation_window_hours: number };
   recentPools: { date: string; amount: number; totalScore: number; status: string }[];
   recentJobs: { id: string; name: string; status: string; startedAt: string; endedAt: string | null; result: any; error: string | null }[];
 }
@@ -198,6 +198,7 @@ export default function AdminDashboard() {
   if (!data) return <div className="p-8 text-center text-text-subtle">Loading dashboard...</div>;
 
   const obsWindow = data.currentConfig?.tweet_observation_window_hours || 0.5;
+  const epochHours = data.currentConfig?.epoch_duration_hours || 24;
 
   return (
     <>
@@ -312,12 +313,12 @@ export default function AdminDashboard() {
                 </div>
                 <button
                   onClick={() => toggleScheduler("tweetIngest", !scheduler?.tweetIngest.enabled, ingestInterval)}
-                  className={`relative w-12 h-6 rounded transition-colors ${
+                  className={`relative w-12 h-6 rounded-full transition-colors ${
                     scheduler?.tweetIngest.enabled ? "bg-accent-long" : "bg-surface-3"
                   }`}
                 >
-                  <div className={`absolute top-0.5 w-5 h-5 bg-white rounded transition-transform ${
-                    scheduler?.tweetIngest.enabled ? "translate-x-6" : "translate-x-0.5"
+                  <div className={`absolute top-[2px] left-[2px] w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${
+                    scheduler?.tweetIngest.enabled ? "translate-x-[24px]" : "translate-x-0"
                   }`} />
                 </button>
               </div>
@@ -364,12 +365,12 @@ export default function AdminDashboard() {
                 </div>
                 <button
                   onClick={() => toggleScheduler("tweetScore", !scheduler?.tweetScore.enabled, scoreInterval)}
-                  className={`relative w-12 h-6 rounded transition-colors ${
+                  className={`relative w-12 h-6 rounded-full transition-colors ${
                     scheduler?.tweetScore.enabled ? "bg-accent-long" : "bg-surface-3"
                   }`}
                 >
-                  <div className={`absolute top-0.5 w-5 h-5 bg-white rounded transition-transform ${
-                    scheduler?.tweetScore.enabled ? "translate-x-6" : "translate-x-0.5"
+                  <div className={`absolute top-[2px] left-[2px] w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${
+                    scheduler?.tweetScore.enabled ? "translate-x-[24px]" : "translate-x-0"
                   }`} />
                 </button>
               </div>
@@ -411,33 +412,27 @@ export default function AdminDashboard() {
                 <div>
                   <div className="font-semibold text-sm">Epoch Settlement</div>
                   <div className="text-xs text-text-subtle mt-0.5">
-                    Auto-settles previous epoch and exports CSV for contract integration
+                    Auto-settles at each epoch boundary and exports CSV
                   </div>
                 </div>
                 <button
-                  onClick={() => toggleScheduler("epochSettle", !scheduler?.epochSettle.enabled, settleInterval)}
-                  className={`relative w-12 h-6 rounded transition-colors ${
+                  onClick={() => {
+                    const intervalMin = Math.max(1, Math.round(epochHours * 60));
+                    toggleScheduler("epochSettle", !scheduler?.epochSettle.enabled, intervalMin);
+                  }}
+                  className={`relative w-12 h-6 rounded-full transition-colors ${
                     scheduler?.epochSettle.enabled ? "bg-accent-long" : "bg-surface-3"
                   }`}
                 >
-                  <div className={`absolute top-0.5 w-5 h-5 bg-white rounded transition-transform ${
-                    scheduler?.epochSettle.enabled ? "translate-x-6" : "translate-x-0.5"
+                  <div className={`absolute top-[2px] left-[2px] w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${
+                    scheduler?.epochSettle.enabled ? "translate-x-[24px]" : "translate-x-0"
                   }`} />
                 </button>
               </div>
 
-              <div className="flex items-center gap-3">
-                <label className="text-xs text-text-subtle">Check every</label>
-                <input
-                  type="number"
-                  min="1"
-                  max="1440"
-                  value={settleInterval}
-                  onChange={(e) => setSettleInterval(parseInt(e.target.value) || 5)}
-                  onBlur={() => updateInterval("epochSettle", settleInterval)}
-                  className="w-20 bg-bg-canvas border border-border rounded px-3 py-1.5 text-sm text-center focus:border-accent-long focus:outline-none"
-                />
-                <label className="text-xs text-text-subtle">minutes</label>
+              <div className="text-xs text-text-subtle">
+                Settles every <span className="text-text-primary font-medium">{epochHours >= 1 ? `${epochHours}h` : `${epochHours * 60}min`}</span>
+                <span className="text-text-faint ml-1">— synced with Epoch Duration in Config</span>
               </div>
 
               {scheduler?.epochSettle.lastRunAt && (

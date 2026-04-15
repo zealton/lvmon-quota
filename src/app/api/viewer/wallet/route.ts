@@ -15,11 +15,19 @@ export async function POST(req: NextRequest) {
 
   const { walletAddress } = await req.json();
 
-  if (!walletAddress || typeof walletAddress !== "string") {
+  // Disconnect: empty string clears wallet
+  if (walletAddress === "" || walletAddress === null) {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { walletAddress: null },
+    });
+    return NextResponse.json({ success: true, walletAddress: null });
+  }
+
+  if (typeof walletAddress !== "string") {
     return NextResponse.json({ error: "walletAddress is required" }, { status: 400 });
   }
 
-  // Basic validation: should look like an EVM or Solana address
   const trimmed = walletAddress.trim();
   if (trimmed.length < 32 || trimmed.length > 64) {
     return NextResponse.json({ error: "Invalid wallet address" }, { status: 400 });

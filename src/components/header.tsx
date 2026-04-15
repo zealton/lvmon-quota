@@ -6,9 +6,7 @@ import { useEffect, useState } from "react";
 
 function WalletButton() {
   const [wallet, setWallet] = useState<string | null>(null);
-  const [editing, setEditing] = useState(false);
-  const [input, setInput] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [connecting, setConnecting] = useState(false);
 
   useEffect(() => {
     fetch("/api/viewer/summary")
@@ -17,62 +15,74 @@ function WalletButton() {
       .catch(() => {});
   }, []);
 
-  const save = async () => {
-    if (!input.trim()) return;
-    setSaving(true);
-    const res = await fetch("/api/viewer/wallet", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ walletAddress: input.trim() }),
-    });
-    const data = await res.json();
-    if (data.success) {
-      setWallet(data.walletAddress);
-      setEditing(false);
+  const connect = async () => {
+    const eth = (window as any).ethereum;
+    if (!eth) {
+      window.open("https://metamask.io/download/", "_blank");
+      return;
     }
-    setSaving(false);
+
+    setConnecting(true);
+    try {
+      const accounts = await eth.request({ method: "eth_requestAccounts" });
+      const address = accounts[0] as string;
+
+      // Sign message to verify ownership
+      const message = `Connect wallet to LVMON Quota\nAddress: ${address}\nTimestamp: ${Date.now()}`;
+      await eth.request({ method: "personal_sign", params: [message, address] });
+
+      // Save to backend
+      const res = await fetch("/api/viewer/wallet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ walletAddress: address }),
+      });
+      const data = await res.json();
+      if (data.success) setWallet(data.walletAddress);
+    } catch (err) {
+      console.error("Wallet connect error:", err);
+    } finally {
+      setConnecting(false);
+    }
   };
 
-  if (editing) {
+  const disconnect = async () => {
+    await fetch("/api/viewer/wallet", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ walletAddress: "" }),
+    });
+    setWallet(null);
+  };
+
+  if (wallet) {
     return (
-      <div className="flex items-center gap-1.5">
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && save()}
-          placeholder="0x... or wallet address"
-          autoFocus
-          className="w-48 bg-surface-2 border border-border rounded px-2.5 py-1 text-xs focus:border-accent-long focus:outline-none transition-colors"
-        />
-        <button onClick={save} disabled={saving} className="text-xs text-accent-long hover:text-accent-long-strong font-medium transition-colors">
-          {saving ? "..." : "Save"}
+      <div className="flex items-center gap-1">
+        <button
+          onClick={connect}
+          className="px-2.5 py-1 bg-surface-2 hover:bg-surface-hover border border-border rounded-l text-xs font-mono text-text-muted transition-colors"
+          title={`${wallet} — click to switch`}
+        >
+          {wallet.slice(0, 6)}...{wallet.slice(-4)}
         </button>
-        <button onClick={() => setEditing(false)} className="text-xs text-text-subtle hover:text-text-muted transition-colors">
-          Cancel
+        <button
+          onClick={disconnect}
+          className="px-1.5 py-1 bg-surface-2 hover:bg-accent-short/20 border border-border border-l-0 rounded-r text-xs text-text-faint hover:text-accent-short transition-colors"
+          title="Disconnect wallet"
+        >
+          <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
         </button>
       </div>
     );
   }
 
-  if (wallet) {
-    return (
-      <button
-        onClick={() => { setInput(wallet); setEditing(true); }}
-        className="px-2.5 py-1 bg-surface-2 hover:bg-surface-hover border border-border rounded text-xs font-mono text-text-muted transition-colors"
-        title={wallet}
-      >
-        {wallet.slice(0, 6)}...{wallet.slice(-4)}
-      </button>
-    );
-  }
-
   return (
     <button
-      onClick={() => setEditing(true)}
-      className="px-2.5 py-1 bg-surface-2 hover:bg-surface-hover border border-border rounded text-xs font-medium text-text-muted transition-colors"
+      onClick={connect}
+      disabled={connecting}
+      className="px-2.5 py-1 bg-surface-2 hover:bg-surface-hover border border-border rounded text-xs font-medium text-text-muted transition-colors disabled:opacity-50"
     >
-      Connect Wallet
+      {connecting ? "Connecting..." : "Connect Wallet"}
     </button>
   );
 }
