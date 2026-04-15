@@ -12,7 +12,7 @@ const prisma = new PrismaClient();
 
 // Track running state to prevent overlapping runs
 const jobRunning: Record<string, boolean> = {};
-const JOB_TIMEOUT_MS = 5 * 60 * 1000; // 5 minute timeout per job
+const JOB_TIMEOUT_MS = 8 * 60 * 1000; // 8 minute timeout per job
 
 async function runJob(name: string, fn: () => Promise<unknown>) {
   if (jobRunning[name]) {
@@ -24,11 +24,16 @@ async function runJob(name: string, fn: () => Promise<unknown>) {
   try {
     const result = await Promise.race([
       fn(),
-      new Promise((_, reject) => setTimeout(() => reject(new Error("Job timeout after 5min")), JOB_TIMEOUT_MS)),
+      new Promise((_, reject) => setTimeout(() => reject(new Error("Job timeout")), JOB_TIMEOUT_MS)),
     ]);
     console.log(`[Worker] ${name} completed:`, JSON.stringify(result));
   } catch (err) {
     console.error(`[Worker] ${name} failed:`, err);
+    // Clean up stuck DB records
+    await prisma.jobRun.updateMany({
+      where: { jobName: name, status: "running" },
+      data: { status: "failed", endedAt: new Date(), error: String(err) },
+    }).catch(() => {});
   } finally {
     jobRunning[name] = false;
   }
