@@ -198,9 +198,15 @@ function HeroBanner({ data }: { data: PageData | null }) {
   return (
     <div className="grid-bg border border-border rounded-md p-6 mb-4">
       <div className="text-center mb-5">
-        <h1 className="text-2xl font-bold mb-1.5 font-display tracking-wide">TWEET TO EARN STAKE QUOTA</h1>
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <svg className="w-7 h-7" viewBox="0 0 32 32" fill="none">
+            <rect width="32" height="32" rx="6" fill="#C7F50D"/>
+            <path d="M8 24V8h4v12h8v4H8z" fill="#0F0F0F"/>
+          </svg>
+          <h1 className="text-2xl font-bold font-display tracking-wide">LVMON STAKING QUOTA</h1>
+        </div>
         <p className="text-sm text-text-muted">
-          Mention <span className="text-accent-long font-medium">@LeverUp_xyz</span> on X — get scored — earn LVMON Stake quota
+          Tweet to earn — mention <span className="text-accent-long font-medium">@LeverUp_xyz</span> on X, get scored, earn staking quota
         </p>
       </div>
 
@@ -252,15 +258,21 @@ function HeroBanner({ data }: { data: PageData | null }) {
           </div>
         )}
         {apy !== null && (
-          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-accent-long-bg border border-accent-long/20 rounded">
+          <a
+            href="https://app.leverup.xyz/LVMON"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-accent-long-bg border border-accent-long/20 rounded hover:border-accent-long/40 transition-colors"
+          >
             <span className="text-text-subtle">Stake APY</span>
             <span className="font-bold text-accent-long tabular-nums">{apy.toLocaleString()}%</span>
-          </div>
+            <svg className="w-3 h-3 text-text-faint" viewBox="0 0 20 20" fill="currentColor"><path d="M5.22 14.78a.75.75 0 001.06 0l7.22-7.22v5.69a.75.75 0 001.5 0v-7.5a.75.75 0 00-.75-.75h-7.5a.75.75 0 000 1.5h5.69l-7.22 7.22a.75.75 0 000 1.06z" /></svg>
+          </a>
         )}
         {data && (
           <>
             <div className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-1 border border-border rounded">
-              <span className="text-text-subtle">Epoch Pool</span>
+              <span className="text-text-subtle">Epoch LVMON Quota</span>
               <span className="font-semibold text-text-primary tabular-nums">{data.dailyPool?.toLocaleString()}</span>
             </div>
             <div className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-1 border border-border rounded">

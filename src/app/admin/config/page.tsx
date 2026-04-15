@@ -80,6 +80,48 @@ const GROUP_DESCRIPTIONS: Record<string, { desc: string; formula?: string; rules
   },
 };
 
+function PromptEditor({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="bg-surface-1 border border-border rounded-md p-6 mt-6">
+      <div className="flex items-center justify-between mb-2">
+        <h2 className="text-sm font-semibold text-accent-long uppercase tracking-wider">
+          LLM Scoring Prompt
+        </h2>
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="text-xs text-text-subtle hover:text-text-muted transition-colors flex items-center gap-1"
+        >
+          {expanded ? "Collapse" : "Expand"}
+          <svg className={`w-3.5 h-3.5 transition-transform ${expanded ? "rotate-180" : ""}`} viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" />
+          </svg>
+        </button>
+      </div>
+      <p className="text-xs text-text-subtle mb-2">
+        System prompt sent to GPT-4o-mini. Each tweet is scored with this prompt + tweet text, media flag, author info (username, followers, verified).
+      </p>
+      {expanded ? (
+        <textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          rows={20}
+          className="w-full bg-surface-hover border border-border rounded px-3 py-2 text-sm font-mono leading-relaxed focus:border-accent-long focus:outline-none transition-colors resize-y"
+        />
+      ) : (
+        <div
+          onClick={() => setExpanded(true)}
+          className="bg-surface-hover border border-border rounded px-3 py-2 text-sm font-mono text-text-muted leading-relaxed cursor-pointer hover:border-border-strong transition-colors max-h-24 overflow-hidden relative"
+        >
+          {value.slice(0, 200)}...
+          <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-surface-hover to-transparent" />
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AdminConfigPage() {
   const [config, setConfig] = useState<ConfigValues | null>(null);
   const [saving, setSaving] = useState(false);
@@ -179,20 +221,10 @@ export default function AdminConfigPage() {
         </div>
 
         {/* Scoring Prompt */}
-        <div className="bg-surface-1 border border-border rounded-md p-6 mt-6">
-          <h2 className="text-sm font-semibold text-accent-long uppercase tracking-wider mb-2">
-            LLM Scoring Prompt
-          </h2>
-          <p className="text-xs text-text-subtle mb-3">
-            System prompt sent to GPT-4o-mini for content quality scoring. Changes take effect on the next tweet scan.
-          </p>
-          <textarea
-            value={(config.scoring_prompt as string) || ""}
-            onChange={(e) => setConfig({ ...config, scoring_prompt: e.target.value })}
-            rows={18}
-            className="w-full bg-surface-hover border border-border rounded px-3 py-2 text-sm font-mono leading-relaxed focus:border-accent-long focus:outline-none transition-colors resize-y"
-          />
-        </div>
+        <PromptEditor
+          value={(config.scoring_prompt as string) || ""}
+          onChange={(v) => setConfig({ ...config, scoring_prompt: v })}
+        />
 
         <button
           onClick={handleSave}

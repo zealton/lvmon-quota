@@ -65,7 +65,7 @@ export function LeaderboardTable() {
       {data.pool && (
         <div className="flex items-center gap-4 mb-4 text-sm text-text-subtle">
           <span>Date: {data.date}</span>
-          <span>Epoch Quota Pool: <span className="text-brand font-medium">{data.pool.quotaAmount.toLocaleString()}</span></span>
+          <span>Epoch LVMON Quota: <span className="text-accent-long font-medium">{data.pool.quotaAmount.toLocaleString()}</span></span>
           <span>Status: {data.pool.status}</span>
           <span>Participants: {data.pagination.total}</span>
         </div>

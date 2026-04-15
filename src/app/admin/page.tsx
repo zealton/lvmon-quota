@@ -212,7 +212,7 @@ export default function AdminDashboard() {
             <div className="text-lg font-bold text-brand">{data.currentConfig?.search_handle || "@LeverUp_xyz"}</div>
           </div>
           <div className="bg-surface-1 border border-border rounded-md p-4">
-            <div className="text-xs text-text-subtle">Epoch Quota Pool</div>
+            <div className="text-xs text-text-subtle">Epoch LVMON Quota</div>
             <div className="text-2xl font-bold">{data.currentConfig?.daily_quota_pool?.toLocaleString() || 1000}</div>
           </div>
           <div className="bg-surface-1 border border-border rounded-md p-4">
