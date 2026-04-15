@@ -198,13 +198,7 @@ function HeroBanner({ data }: { data: PageData | null }) {
   return (
     <div className="grid-bg border border-border rounded-md p-6 mb-4">
       <div className="text-center mb-5">
-        <div className="flex items-center justify-center gap-2 mb-2">
-          <svg className="w-7 h-7" viewBox="0 0 32 32" fill="none">
-            <rect width="32" height="32" rx="6" fill="#C7F50D"/>
-            <path d="M8 24V8h4v12h8v4H8z" fill="#0F0F0F"/>
-          </svg>
-          <h1 className="text-2xl font-bold font-display tracking-wide">LVMON STAKING QUOTA</h1>
-        </div>
+        <h1 className="text-2xl font-bold tracking-wide mb-2">LVMON STAKING QUOTA</h1>
         <p className="text-sm text-text-muted">
           Tweet to earn — mention <span className="text-accent-long font-medium">@LeverUp_xyz</span> on X, get scored, earn staking quota
         </p>

@@ -311,16 +311,23 @@ export default function AdminDashboard() {
                     Searches X for new tweets, then immediately scores content quality via AI
                   </div>
                 </div>
-                <button
+                <div
                   onClick={() => toggleScheduler("tweetIngest", !scheduler?.tweetIngest.enabled, ingestInterval)}
-                  className={`relative w-12 h-6 rounded-full transition-colors ${
-                    scheduler?.tweetIngest.enabled ? "bg-accent-long" : "bg-surface-3"
-                  }`}
+                  className="cursor-pointer"
                 >
-                  <div className={`absolute top-[2px] left-[2px] w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${
-                    scheduler?.tweetIngest.enabled ? "translate-x-[24px]" : "translate-x-0"
-                  }`} />
-                </button>
+                  <div style={{
+                    width: 44, height: 24, borderRadius: 12, position: "relative",
+                    backgroundColor: scheduler?.tweetIngest.enabled ? "#c7f50d" : "#262627",
+                    transition: "background-color 0.2s",
+                  }}>
+                    <div style={{
+                      width: 20, height: 20, borderRadius: 10, backgroundColor: "#fff",
+                      position: "absolute", top: 2,
+                      left: scheduler?.tweetIngest.enabled ? 22 : 2,
+                      transition: "left 0.2s",
+                    }} />
+                  </div>
+                </div>
               </div>
 
               <div className="flex items-center gap-3">
@@ -363,16 +370,23 @@ export default function AdminDashboard() {
                     First score after {obsWindow >= 1 ? `${obsWindow}h` : `${obsWindow * 60}min`} window, then re-evaluates all unsettled tweets each run
                   </div>
                 </div>
-                <button
+                <div
                   onClick={() => toggleScheduler("tweetScore", !scheduler?.tweetScore.enabled, scoreInterval)}
-                  className={`relative w-12 h-6 rounded-full transition-colors ${
-                    scheduler?.tweetScore.enabled ? "bg-accent-long" : "bg-surface-3"
-                  }`}
+                  className="cursor-pointer"
                 >
-                  <div className={`absolute top-[2px] left-[2px] w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${
-                    scheduler?.tweetScore.enabled ? "translate-x-[24px]" : "translate-x-0"
-                  }`} />
-                </button>
+                  <div style={{
+                    width: 44, height: 24, borderRadius: 12, position: "relative",
+                    backgroundColor: scheduler?.tweetScore.enabled ? "#c7f50d" : "#262627",
+                    transition: "background-color 0.2s",
+                  }}>
+                    <div style={{
+                      width: 20, height: 20, borderRadius: 10, backgroundColor: "#fff",
+                      position: "absolute", top: 2,
+                      left: scheduler?.tweetScore.enabled ? 22 : 2,
+                      transition: "left 0.2s",
+                    }} />
+                  </div>
+                </div>
               </div>
 
               <div className="flex items-center gap-3">
@@ -415,19 +429,26 @@ export default function AdminDashboard() {
                     Auto-settles at each epoch boundary and exports CSV
                   </div>
                 </div>
-                <button
+                <div
                   onClick={() => {
                     const intervalMin = Math.max(1, Math.round(epochHours * 60));
                     toggleScheduler("epochSettle", !scheduler?.epochSettle.enabled, intervalMin);
                   }}
-                  className={`relative w-12 h-6 rounded-full transition-colors ${
-                    scheduler?.epochSettle.enabled ? "bg-accent-long" : "bg-surface-3"
-                  }`}
+                  className="cursor-pointer"
                 >
-                  <div className={`absolute top-[2px] left-[2px] w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${
-                    scheduler?.epochSettle.enabled ? "translate-x-[24px]" : "translate-x-0"
-                  }`} />
-                </button>
+                  <div style={{
+                    width: 44, height: 24, borderRadius: 12, position: "relative",
+                    backgroundColor: scheduler?.epochSettle.enabled ? "#c7f50d" : "#262627",
+                    transition: "background-color 0.2s",
+                  }}>
+                    <div style={{
+                      width: 20, height: 20, borderRadius: 10, backgroundColor: "#fff",
+                      position: "absolute", top: 2,
+                      left: scheduler?.epochSettle.enabled ? 22 : 2,
+                      transition: "left 0.2s",
+                    }} />
+                  </div>
+                </div>
               </div>
 
               <div className="text-xs text-text-subtle">
