@@ -10,14 +10,27 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-// Dynamically import jobs (they use @/ paths resolved by tsx)
+// Track running state to prevent overlapping runs
+const jobRunning: Record<string, boolean> = {};
+const JOB_TIMEOUT_MS = 5 * 60 * 1000; // 5 minute timeout per job
+
 async function runJob(name: string, fn: () => Promise<unknown>) {
+  if (jobRunning[name]) {
+    console.log(`[Worker] ${name} still running, skipping`);
+    return;
+  }
+  jobRunning[name] = true;
   console.log(`[Worker] Starting ${name}...`);
   try {
-    const result = await fn();
+    const result = await Promise.race([
+      fn(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error("Job timeout after 5min")), JOB_TIMEOUT_MS)),
+    ]);
     console.log(`[Worker] ${name} completed:`, JSON.stringify(result));
   } catch (err) {
     console.error(`[Worker] ${name} failed:`, err);
+  } finally {
+    jobRunning[name] = false;
   }
 }
 
@@ -54,6 +67,18 @@ function minutesToCron(minutes: number): string {
   return `0 */${hours} * * *`;
 }
 
+function minutesToCronOffset(minutes: number, offset: number): string {
+  if (minutes <= 0) minutes = 1;
+  if (minutes < 60) {
+    // e.g. every 15 min offset 5 → "5,20,35,50 * * * *"
+    const points = [];
+    for (let m = offset % minutes; m < 60; m += minutes) points.push(m);
+    return `${points.join(",")} * * * *`;
+  }
+  const hours = Math.floor(minutes / 60);
+  return `${offset} */${hours} * * *`;
+}
+
 let ingestTask: cron.ScheduledTask | null = null;
 let scoreTask: cron.ScheduledTask | null = null;
 let settleTask: cron.ScheduledTask | null = null;
@@ -61,7 +86,7 @@ let settleTask: cron.ScheduledTask | null = null;
 async function syncScheduler() {
   const config = await getSchedulerConfig();
 
-  // Ingest
+  // Ingest — runs at :00, :15, :30, :45 (offset 0)
   if (ingestTask) { ingestTask.stop(); ingestTask = null; }
   if (config.ingestEnabled) {
     const { runTweetIngest } = await import("./src/jobs/tweet-ingest");
@@ -73,26 +98,28 @@ async function syncScheduler() {
     console.log(`[Worker] tweet-ingest disabled`);
   }
 
-  // Score
+  // Score — offset by 5 minutes to avoid overlap with ingest
   if (scoreTask) { scoreTask.stop(); scoreTask = null; }
   if (config.scoreEnabled) {
     const { runTweetScore } = await import("./src/jobs/tweet-score");
-    scoreTask = cron.schedule(minutesToCron(config.scoreInterval), () => {
+    const scoreOffset = Math.min(5, Math.floor(config.scoreInterval / 2));
+    scoreTask = cron.schedule(minutesToCronOffset(config.scoreInterval, scoreOffset), () => {
       runJob("tweet-score", runTweetScore);
     });
-    console.log(`[Worker] tweet-score scheduled every ${config.scoreInterval}min`);
+    console.log(`[Worker] tweet-score scheduled every ${config.scoreInterval}min (offset +${scoreOffset})`);
   } else {
     console.log(`[Worker] tweet-score disabled`);
   }
 
-  // Epoch Settlement
+  // Epoch Settlement — offset by 10 minutes
   if (settleTask) { settleTask.stop(); settleTask = null; }
   if (config.settleEnabled) {
     const { runEpochSettleAndExport } = await import("./src/jobs/epoch-settle-export");
-    settleTask = cron.schedule(minutesToCron(config.settleInterval), () => {
+    const settleOffset = Math.min(10, Math.floor(config.settleInterval / 2));
+    settleTask = cron.schedule(minutesToCronOffset(config.settleInterval, settleOffset), () => {
       runJob("epoch-settle", runEpochSettleAndExport);
     });
-    console.log(`[Worker] epoch-settle scheduled every ${config.settleInterval}min`);
+    console.log(`[Worker] epoch-settle scheduled every ${config.settleInterval}min (offset +${settleOffset})`);
   } else {
     console.log(`[Worker] epoch-settle disabled`);
   }
