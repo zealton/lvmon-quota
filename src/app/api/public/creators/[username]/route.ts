@@ -19,7 +19,7 @@ export async function GET(
           },
           tweets: {
             where: {
-              status: { in: [TweetStatus.quality_scored, TweetStatus.scored, TweetStatus.settled] },
+              status: { in: [TweetStatus.quality_scored, TweetStatus.scored] },
               score: { isPublic: true },
             },
             include: {

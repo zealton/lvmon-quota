@@ -16,7 +16,8 @@ interface ConfigField {
 
 const CONFIG_FIELDS: Record<string, ConfigField> = {
   search_handle: { label: "Search Handle (Twitter @)", type: "text", group: "Search" },
-  max_search_results: { label: "Max Search Results", type: "number", group: "Search" },
+  search_extra_keywords: { label: "Extra Search Keywords (comma separated)", type: "text", group: "Search" },
+  max_search_results: { label: "Max Results Per Query", type: "number", group: "Search" },
   daily_quota_pool: { label: "Daily Quota Pool", type: "number", group: "Quota" },
   epoch_duration_hours: { label: "Epoch Duration (hours)", type: "number", group: "Quota" },
   tweet_observation_window_hours: { label: "Observation Window (hours)", type: "number", group: "Scoring" },
@@ -35,7 +36,12 @@ const CONFIG_FIELDS: Record<string, ConfigField> = {
 
 const GROUP_DESCRIPTIONS: Record<string, { desc: string; formula?: string; rules?: string[] }> = {
   Search: {
-    desc: "Twitter search configuration. The system periodically searches for tweets mentioning the configured handle.",
+    desc: "Twitter search configuration. Each keyword runs as a separate search query. Tweets matching any keyword are captured.",
+    rules: [
+      "Search Handle: primary @ mention to search for",
+      "Extra Keywords: comma-separated list (e.g. $LVMON, $LVUSD, LeverUp). Each runs as a separate search query.",
+      "Max Results Per Query: results per page per query (10-100). Each query paginates up to 3 pages.",
+    ],
   },
   Quota: {
     desc: "Quota pool and epoch timing. Each epoch distributes quota proportionally by user mindshare score.",
@@ -172,10 +178,26 @@ export default function AdminConfigPage() {
           })}
         </div>
 
+        {/* Scoring Prompt */}
+        <div className="bg-surface-1 border border-border rounded-md p-6 mt-6">
+          <h2 className="text-sm font-semibold text-accent-long uppercase tracking-wider mb-2">
+            LLM Scoring Prompt
+          </h2>
+          <p className="text-xs text-text-subtle mb-3">
+            System prompt sent to GPT-4o-mini for content quality scoring. Changes take effect on the next tweet scan.
+          </p>
+          <textarea
+            value={(config.scoring_prompt as string) || ""}
+            onChange={(e) => setConfig({ ...config, scoring_prompt: e.target.value })}
+            rows={18}
+            className="w-full bg-surface-hover border border-border rounded px-3 py-2 text-sm font-mono leading-relaxed focus:border-accent-long focus:outline-none transition-colors resize-y"
+          />
+        </div>
+
         <button
           onClick={handleSave}
           disabled={saving}
-          className="mt-6 w-full py-3 bg-accent-long hover:bg-accent-long-strong disabled:bg-surface-3 text-white font-semibold rounded transition-colors"
+          className="mt-6 w-full py-3 bg-accent-long hover:bg-accent-long-strong disabled:bg-surface-3 text-bg-canvas font-semibold rounded transition-colors"
         >
           {saving ? "Saving..." : "Save Config"}
         </button>

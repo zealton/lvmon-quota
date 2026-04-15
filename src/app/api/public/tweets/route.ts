@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
 
   if (mode === "tweets") {
     // Tweet-level listing — include quality_scored tweets so users see immediate feedback
-    const statusFilter = { in: [TweetStatus.quality_scored, TweetStatus.scored, TweetStatus.settled] };
+    const statusFilter = { in: [TweetStatus.quality_scored, TweetStatus.scored] };
     const [tweets, total] = await Promise.all([
       prisma.tweet.findMany({
         where: {
@@ -85,10 +85,10 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  // Author-grouped mode: aggregate scores per author
+  // Author-grouped mode: aggregate scores per author (current epoch only, not settled)
   const scoredTweets = await prisma.tweet.findMany({
     where: {
-      status: { in: [TweetStatus.quality_scored, TweetStatus.scored, TweetStatus.settled] },
+      status: { in: [TweetStatus.quality_scored, TweetStatus.scored] },
       score: { isPublic: true },
     },
     include: {

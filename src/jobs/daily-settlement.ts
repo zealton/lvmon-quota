@@ -36,17 +36,28 @@ export async function runDailySettlement(targetDate?: Date) {
     const dayStart = settleDate;
     const dayEnd = new Date(settleDate.getTime() + epochMs);
 
-    const scoredTweets = await prisma.tweet.findMany({
+    // Primary: tweets from this epoch window
+    // Fallback: also include orphaned scored tweets from before this epoch
+    // that were never settled (e.g. scored after their epoch already settled)
+    // Fetch tweets from this epoch window
+    const epochTweets = await prisma.tweet.findMany({
       where: {
         status: "scored",
-        score: {
-          scoredAt: { gte: dayStart, lt: dayEnd },
-        },
+        createdAtX: { gte: dayStart, lt: dayEnd },
       },
-      include: {
-        score: true,
-      },
+      include: { score: true },
     });
+
+    // Also pick up orphaned scored tweets from earlier that missed their epoch
+    const orphanedTweets = await prisma.tweet.findMany({
+      where: {
+        status: "scored",
+        createdAtX: { lt: dayStart },
+      },
+      include: { score: true },
+    });
+
+    const scoredTweets = [...epochTweets, ...orphanedTweets];
 
     if (scoredTweets.length === 0) {
       await prisma.dailyQuotaPool.upsert({

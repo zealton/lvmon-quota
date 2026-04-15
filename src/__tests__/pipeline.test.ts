@@ -175,4 +175,72 @@ describe("Full Pipeline Integration", () => {
     const score = await testPrisma.tweetScore.findUnique({ where: { tweetId: tweet.id } });
     expect(score!.qualityScore).toBe(25);
   });
+
+  it("settled tweets are excluded from leaderboard data", async () => {
+    const user = await createUser();
+    const scoredAt = new Date("2026-04-09T10:00:00Z");
+
+    // Create a settled tweet (from previous epoch)
+    const settledTweet = await createTweet({ userId: user.id, authorXUserId: "xa", status: "settled" });
+    await testPrisma.tweetScore.create({
+      data: { tweetId: settledTweet.id, qualityScore: 30, engagementScore: 40, trustMultiplier: 1, finalScore: 70, riskLevel: "none", isPublic: true },
+    });
+
+    // Create a scored tweet (current epoch)
+    const currentTweet = await createTweet({ userId: user.id, authorXUserId: "xa", status: "scored" });
+    await testPrisma.tweetScore.create({
+      data: { tweetId: currentTweet.id, qualityScore: 10, engagementScore: 5, trustMultiplier: 1, finalScore: 15, riskLevel: "none", isPublic: true },
+    });
+
+    // Query same filter as leaderboard API: only quality_scored + scored
+    const leaderboardTweets = await testPrisma.tweet.findMany({
+      where: { status: { in: ["quality_scored", "scored"] } },
+      include: { score: true },
+    });
+
+    // Should only find the current tweet, not the settled one
+    expect(leaderboardTweets).toHaveLength(1);
+    expect(leaderboardTweets[0].status).toBe("scored");
+    expect(leaderboardTweets[0].score!.finalScore).toBe(15);
+  });
+
+  it("orphaned tweets from earlier epochs are included in next settlement", async () => {
+    const user = await createUser();
+
+    // Tweet created in epoch 1 window (April 8) but never settled
+    await createScoredTweet({
+      userId: user.id, authorXUserId: "x1", finalScore: 60,
+      scoredAt: new Date("2026-04-08T10:00:00Z"),
+    });
+    // Manually set createdAtX to April 8 (epoch 1)
+    await testPrisma.tweet.updateMany({
+      where: { status: "scored" },
+      data: { createdAtX: new Date("2026-04-08T10:00:00Z") },
+    });
+
+    // Settle epoch 2 (April 9) — should also pick up orphaned tweet from epoch 1
+    const result = await runDailySettlement(new Date("2026-04-09T00:00:00Z"));
+    expect(result.tweetsSettled).toBeGreaterThanOrEqual(1);
+
+    // Tweet should now be settled
+    const tweets = await testPrisma.tweet.findMany({ where: { status: "settled" } });
+    expect(tweets.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("totalReward accumulates across settled epochs", async () => {
+    const user = await createUser();
+
+    // Day 1 settlement
+    await createScoredTweet({ userId: user.id, authorXUserId: "x1", finalScore: 50, scoredAt: new Date("2026-04-08T10:00:00Z") });
+    await runDailySettlement(new Date("2026-04-08T00:00:00Z"));
+
+    // Day 2 settlement
+    await createScoredTweet({ userId: user.id, authorXUserId: "x1", finalScore: 60, scoredAt: new Date("2026-04-09T10:00:00Z") });
+    await runDailySettlement(new Date("2026-04-09T00:00:00Z"));
+
+    // Check issuances sum
+    const issuances = await testPrisma.quotaIssuance.findMany({ where: { userId: user.id } });
+    const totalHistorical = issuances.reduce((s, i) => s + i.quotaAmount, 0);
+    expect(totalHistorical).toBe(2000); // 1000 per epoch, sole user
+  });
 });

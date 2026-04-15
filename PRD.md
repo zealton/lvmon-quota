@@ -50,13 +50,18 @@ Tweet Published on X
 
 ## 3. Tweet Scanning Rules
 
-### 3.1 Search Query
+### 3.1 Search Queries
 
-- **Query**: `@{search_handle} -is:retweet -is:reply`
-- **Default handle**: `@LeverUp_xyz` (configurable via admin)
-- **Max results per page**: 20 (configurable, range 10-100)
-- **Pagination**: Automatically fetches up to 5 pages (max 500 tweets per scan)
-- **Incremental scanning**: Uses `since_id` to only fetch tweets newer than the last scan, avoiding duplicate API calls
+The system runs **multiple search queries** per scan:
+
+- **Primary query**: `@{search_handle} -is:retweet -is:reply`
+- **Extra keyword queries**: Each keyword in `search_extra_keywords` runs as a separate query (e.g. `$LVMON -is:retweet -is:reply`)
+- **Default handle**: `@LeverUp_xyz`
+- **Default extra keywords**: `$LVMON, $LVUSD, LeverUp`
+- **Max results per page per query**: 100 (configurable, range 10-100)
+- **Pagination**: Up to 3 pages per query (max 300 tweets per query, 1200+ per scan with multiple queries)
+- **Cross-query deduplication**: Same tweet appearing in multiple query results is only captured once
+- **Incremental scanning**: Uses `since_id` to only fetch tweets newer than the last scan
 
 ### 3.2 Hard Filters (Auto-Reject)
 
@@ -67,7 +72,7 @@ A tweet is immediately **rejected** if any of the following are true:
 | Retweet | `is:retweet` — pure retweets are excluded |
 | Reply | `is:reply` — replies are excluded |
 | Too short | Text length < **10 characters** (configurable `min_text_length`) |
-| No mention | Tweet text does not contain `@{search_handle}` (case-insensitive) |
+| No mention | Tweet text does not contain any of: `@{search_handle}` or any extra keyword (case-insensitive) |
 
 ### 3.3 Duplicate Detection
 
@@ -92,7 +97,9 @@ After Phase 1, the tweet's `finalScore` is set to the quality score so it **imme
 
 ### 4.2 Quality Score (0–40 points)
 
-Evaluated by **GPT-4o-mini** with the following dimensions:
+Evaluated by **GPT-4o-mini** using a **configurable system prompt** (editable in Admin Config page). Quality scores use decimal precision (e.g. 8.5, 12.3). Quality is scored once per tweet and **never re-evaluated** — only engagement scores update on subsequent runs.
+
+Dimensions:
 
 | Dimension | Range | Criteria |
 |-----------|-------|----------|
@@ -212,10 +219,20 @@ user_quota = daily_pool × user_mindshare
 - **Daily quota pool**: 1,000 LVMON (configurable)
 - **Distribution method**: Largest Remainder Method — ensures integer allocations sum exactly to the pool total
 
-### 5.3 Settlement Timing
+### 5.3 Settlement Timing & Epoch Matching
 
-- Settles **yesterday's** scored tweets (Asia/Shanghai timezone)
+- Epoch duration is configurable (default 24h, can be set to 1h for testing)
+- Settlement settles the **previous epoch's** time window
+- Tweets are matched to epochs by **`createdAtX`** (tweet publish time), not scoring time
+- **Orphaned tweet recovery**: If a tweet was scored after its epoch already settled, it will be picked up by the next settlement (any unsettled scored tweet with `createdAtX < epochEnd` is included)
 - Can be re-run to recalculate if needed (deletes and recreates pool data)
+
+### 5.4 Leaderboard vs Settlement Data Consistency
+
+- The public leaderboard (`/api/public/tweets`) only shows **unsettled** tweets (`quality_scored` + `scored`)
+- Settled tweets are excluded from the leaderboard to avoid mixing epochs
+- `Total Quota` on the leaderboard includes historical settled rewards from `QuotaIssuance` records
+- The Epoch Settlement page (`/api/epoch/current`) shows the same unsettled data, ensuring consistency
 
 ---
 
@@ -423,8 +440,9 @@ All parameters are adjustable via the admin Config page without redeployment:
 ### Search
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `search_handle` | `@LeverUp_xyz` | X handle to search for mentions |
-| `max_search_results` | 20 | Results per API page (10-100) |
+| `search_handle` | `@LeverUp_xyz` | Primary X handle to search for |
+| `search_extra_keywords` | `$LVMON, $LVUSD, LeverUp` | Additional search terms (comma separated), each runs as separate query |
+| `max_search_results` | 100 | Results per page per query (10-100) |
 
 ### Scoring
 | Parameter | Default | Description |
@@ -453,7 +471,13 @@ All parameters are adjustable via the admin Config page without redeployment:
 ### Quota
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `daily_quota_pool` | 1000 | Total LVMON distributed per day |
+| `daily_quota_pool` | 1000 | Total LVMON distributed per epoch |
+| `epoch_duration_hours` | 24 (prod) / 1 (test) | Length of each epoch in hours |
+
+### LLM Prompt
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `scoring_prompt` | (see config page) | System prompt sent to GPT-4o-mini for quality scoring. Editable in admin. |
 
 ---
 

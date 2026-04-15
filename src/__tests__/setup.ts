@@ -133,6 +133,7 @@ export async function createScoredTweet(data: {
     userId: data.userId,
     authorXUserId: data.authorXUserId,
     status: "scored",
+    createdAtX: data.scoredAt, // align tweet publish time with scored time for epoch matching
   });
 
   const quality = data.qualityScore ?? 20;

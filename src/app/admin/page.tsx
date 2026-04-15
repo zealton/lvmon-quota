@@ -143,7 +143,7 @@ export default function AdminDashboard() {
   };
 
   const updateInterval = async (jobKey: "tweetIngest" | "tweetScore" | "epochSettle", intervalMinutes: number) => {
-    const enabled = jobKey === "tweetIngest" ? scheduler?.tweetIngest.enabled : scheduler?.tweetScore.enabled;
+    const enabled = scheduler?.[jobKey]?.enabled;
     await toggleScheduler(jobKey, !!enabled, intervalMinutes);
   };
 

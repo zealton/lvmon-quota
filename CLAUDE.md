@@ -33,8 +33,8 @@ npx prisma db push   # Push schema without migration
 ### Pipeline Flow
 
 ```
-Tweet on X → [Scan] → Hard Filters → [Quality Score via AI] → [Wait observation window]
-→ [Engagement Score] → [Daily Settlement] → [Quota Expiry]
+Tweet on X → [Multi-query Scan] → Hard Filters → [Quality Score via AI] → [Wait observation window]
+→ [Engagement Score (re-evaluated each run)] → [Epoch Settlement + CSV Export] → [Quota Expiry]
 ```
 
 ### Two-Phase Scoring
@@ -66,7 +66,8 @@ src/
 │   └── tweets/            # Main leaderboard page
 ├── components/            # Shared UI components
 ├── jobs/                  # Background job logic
-│   ├── tweet-ingest.ts    # Scan X + quality score
+│   ├── tweet-ingest.ts    # Multi-query scan X + quality score
+│   ├── epoch-settle-export.ts # Auto epoch settlement + CSV export
 │   ├── tweet-score.ts     # Engagement score + re-evaluation
 │   ├── daily-settlement.ts # Quota distribution
 │   ├── quota-expiry.ts    # Expire old quota
@@ -87,8 +88,10 @@ prisma/
 ## Conventions
 
 - **PRD sync**: When making functional changes (scoring rules, pipeline flow, config defaults, new features), update `PRD.md` to match.
-- **Design system**: Coinbase-inspired. Use custom color tokens (`text-brand`, `bg-surface-card`, `text-accent-green`, etc.) defined in `globals.css`. Buttons use 56px pill radius.
-- **Config**: All scoring/filtering parameters are dynamically configurable via `AppConfig` table and admin Config page. Defaults in `config.ts`.
+- **Design system**: LeverUp trading terminal style. Dark layered surfaces (`bg-bg-canvas`, `bg-surface-1`, `bg-surface-2`), accent-long yellow-green (`#C7F50D`), compact panels, 4-8px radius, Inter + Orbitron fonts. See `DESIGN.md`.
+- **Config**: All scoring/filtering parameters are dynamically configurable via `AppConfig` table and admin Config page. Defaults in `config.ts`. LLM scoring prompt is also configurable via admin.
+- **Search**: Multiple search queries run per scan (primary handle + extra keywords). All configurable in admin.
+- **Leaderboard data**: Only shows unsettled tweets (quality_scored + scored). Settled tweets excluded to match epoch API.
 - **Scheduler state**: DB (`AppConfig`) is the single source of truth. In-memory cron tasks are synced from DB on startup and on every state change.
 - **Jobs are async**: The `/api/cron` endpoint fires and forgets. Admin UI polls for completion.
 - **Score logs**: Score changes are persisted to `score_logs` table (auto-cleaned after 7 days). View at `/admin/score-logs`.
