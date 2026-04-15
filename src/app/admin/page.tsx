@@ -28,6 +28,37 @@ interface SchedulerState {
   epochSettle: SchedulerJobState;
 }
 
+function NextRunCountdown({ lastRunAt, intervalMinutes, enabled, running }: {
+  lastRunAt: string | null;
+  intervalMinutes: number;
+  enabled: boolean;
+  running: boolean;
+}) {
+  const [timeLeft, setTimeLeft] = useState("");
+
+  useEffect(() => {
+    if (!enabled || !lastRunAt || running) { setTimeLeft(""); return; }
+    function update() {
+      const nextRun = new Date(lastRunAt!).getTime() + intervalMinutes * 60 * 1000;
+      const diff = nextRun - Date.now();
+      if (diff <= 0) { setTimeLeft("any moment"); return; }
+      const m = Math.floor(diff / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      setTimeLeft(`${m}:${String(s).padStart(2, "0")}`);
+    }
+    update();
+    const id = setInterval(update, 1000);
+    return () => clearInterval(id);
+  }, [lastRunAt, intervalMinutes, enabled, running]);
+
+  if (!enabled || !timeLeft || running) return null;
+  return (
+    <span className="text-text-faint text-[11px] font-mono tabular-nums ml-1">
+      · next in {timeLeft}
+    </span>
+  );
+}
+
 function RecentJobRuns({ jobs }: { jobs: DashboardData["recentJobs"] }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -351,7 +382,8 @@ export default function AdminDashboard() {
                     scheduler.tweetIngest.lastRunStatus === "completed" ? "bg-accent-long" : "bg-accent-short"
                   }`} />
                   {scheduler.tweetIngest.running ? "Running now..." : (
-                    <>Last run: {new Date(scheduler.tweetIngest.lastRunAt).toLocaleString()} ({scheduler.tweetIngest.lastRunStatus})</>
+                    <>Last run: {new Date(scheduler.tweetIngest.lastRunAt).toLocaleString()} ({scheduler.tweetIngest.lastRunStatus})
+                    <NextRunCountdown lastRunAt={scheduler.tweetIngest.lastRunAt} intervalMinutes={scheduler.tweetIngest.intervalMinutes} enabled={scheduler.tweetIngest.enabled} running={scheduler.tweetIngest.running} /></>
                   )}
                 </div>
               )}
@@ -410,7 +442,8 @@ export default function AdminDashboard() {
                     scheduler.tweetScore.lastRunStatus === "completed" ? "bg-accent-long" : "bg-accent-short"
                   }`} />
                   {scheduler.tweetScore.running ? "Running now..." : (
-                    <>Last run: {new Date(scheduler.tweetScore.lastRunAt).toLocaleString()} ({scheduler.tweetScore.lastRunStatus})</>
+                    <>Last run: {new Date(scheduler.tweetScore.lastRunAt).toLocaleString()} ({scheduler.tweetScore.lastRunStatus})
+                    <NextRunCountdown lastRunAt={scheduler.tweetScore.lastRunAt} intervalMinutes={scheduler.tweetScore.intervalMinutes} enabled={scheduler.tweetScore.enabled} running={scheduler.tweetScore.running} /></>
                   )}
                 </div>
               )}
@@ -463,7 +496,8 @@ export default function AdminDashboard() {
                     scheduler.epochSettle.lastRunStatus === "completed" ? "bg-accent-long" : "bg-accent-short"
                   }`} />
                   {scheduler.epochSettle.running ? "Running now..." : (
-                    <>Last run: {new Date(scheduler.epochSettle.lastRunAt).toLocaleString()} ({scheduler.epochSettle.lastRunStatus})</>
+                    <>Last run: {new Date(scheduler.epochSettle.lastRunAt).toLocaleString()} ({scheduler.epochSettle.lastRunStatus})
+                    <NextRunCountdown lastRunAt={scheduler.epochSettle.lastRunAt} intervalMinutes={scheduler.epochSettle.intervalMinutes} enabled={scheduler.epochSettle.enabled} running={scheduler.epochSettle.running} /></>
                   )}
                 </div>
               )}

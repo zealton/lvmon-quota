@@ -82,9 +82,17 @@ function minutesToCronOffset(minutes: number, offset: number): string {
 let ingestTask: cron.ScheduledTask | null = null;
 let scoreTask: cron.ScheduledTask | null = null;
 let settleTask: cron.ScheduledTask | null = null;
+let lastConfigHash = "";
 
 async function syncScheduler() {
   const config = await getSchedulerConfig();
+
+  // Only re-register if config actually changed
+  const configHash = JSON.stringify(config);
+  if (configHash === lastConfigHash) return;
+  lastConfigHash = configHash;
+
+  console.log("[Worker] Config changed, re-syncing scheduler...");
 
   // Ingest — runs at :00, :15, :30, :45 (offset 0)
   if (ingestTask) { ingestTask.stop(); ingestTask = null; }
