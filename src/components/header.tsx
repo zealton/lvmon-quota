@@ -38,7 +38,10 @@ function WalletButton() {
         body: JSON.stringify({ walletAddress: address }),
       });
       const data = await res.json();
-      if (data.success) setWallet(data.walletAddress);
+      if (data.success) {
+        setWallet(data.walletAddress);
+        window.dispatchEvent(new CustomEvent("wallet-changed", { detail: data.walletAddress }));
+      }
     } catch (err) {
       console.error("Wallet connect error:", err);
     } finally {
@@ -53,15 +56,16 @@ function WalletButton() {
       body: JSON.stringify({ walletAddress: "" }),
     });
     setWallet(null);
+    window.dispatchEvent(new CustomEvent("wallet-changed", { detail: null }));
   };
 
   if (wallet) {
     return (
       <div className="flex items-center gap-1">
         <button
-          onClick={connect}
+          onClick={() => { navigator.clipboard.writeText(wallet); }}
           className="px-2.5 py-1 bg-surface-2 hover:bg-surface-hover border border-border rounded-l text-xs font-mono text-text-muted transition-colors"
-          title={`${wallet} — click to switch`}
+          title={`${wallet} — click to copy`}
         >
           {wallet.slice(0, 6)}...{wallet.slice(-4)}
         </button>
@@ -87,8 +91,13 @@ function WalletButton() {
   );
 }
 
+const ADMIN_USERNAMES = ["auuutoo", "Alex_LeverUp", "rona_leverup"];
+
 export function Header() {
   const { data: session, status } = useSession();
+  const role = (session as Record<string, any> | null)?.role;
+  const username = (session as Record<string, any> | null)?.username;
+  const isAdmin = role === "admin" || ADMIN_USERNAMES.includes(username);
 
   return (
     <header className="border-b border-border bg-bg-panel sticky top-0 z-50">
@@ -96,6 +105,7 @@ export function Header() {
         <div className="flex items-center justify-between h-12">
           <div className="flex items-center gap-6">
             <Link href="/" className="flex items-center gap-2">
+              <img src="/icon.png" alt="" className="w-5 h-5" />
               <span className="text-lg font-bold text-accent-long font-display">LVMON</span>
               <span className="text-xs text-text-subtle">Quota</span>
             </Link>
@@ -103,9 +113,11 @@ export function Header() {
               <Link href="/tweets" className="text-xs font-medium text-text-muted hover:text-text-primary transition-colors">
                 Leaderboard
               </Link>
-              <Link href="/admin" className="text-xs font-medium text-text-muted hover:text-text-primary transition-colors">
-                Admin
-              </Link>
+              {isAdmin && (
+                <Link href="/admin" className="text-xs font-medium text-text-muted hover:text-text-primary transition-colors">
+                  Admin
+                </Link>
+              )}
             </nav>
           </div>
 

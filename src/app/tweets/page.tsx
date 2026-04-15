@@ -299,6 +299,15 @@ function MyCard({ data }: { data: PageData | null }) {
       .catch(() => {});
   }, [session]);
 
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const wallet = (e as CustomEvent).detail;
+      setViewer((v) => v ? { ...v, walletAddress: wallet } : v);
+    };
+    window.addEventListener("wallet-changed", handler);
+    return () => window.removeEventListener("wallet-changed", handler);
+  }, []);
+
   if (!session || !viewer) return null;
 
   const myEntry = data?.items?.find(

@@ -12,27 +12,22 @@ export async function runTweetIngest() {
     const client = getBearerClient();
     const config = await getConfig();
 
-    // Build search queries: primary handle + extra keywords
+    // Build single OR query: primary handle + extra keywords
     const handle = config.search_handle.replace(/^@/, "");
     const extraKeywords = config.search_extra_keywords
       ? config.search_extra_keywords.split(",").map((k: string) => k.trim()).filter(Boolean)
       : [];
 
-    // Each keyword becomes a separate query — Twitter OR operator has limits
-    const queries = [
-      `@${handle} -is:retweet -is:reply`,
-      ...extraKeywords.map((kw: string) => `${kw} -is:retweet -is:reply`),
-    ];
-
+    const orTerms = [`@${handle}`, ...extraKeywords];
+    const searchQuery = `(${orTerms.join(" OR ")}) -is:retweet -is:reply`;
     const maxResults = Math.min(Math.max(config.max_search_results, 10), 100);
 
     // Get since_id from last successful ingest to avoid re-fetching old tweets
     const sinceIdRow = await prisma.appConfig.findUnique({ where: { key: "ingest_since_id" } });
     const sinceId = sinceIdRow?.value || undefined;
 
-    // Fetch tweets across all queries with pagination
+    // Fetch tweets with pagination
     const allTweets: any[] = [];
-    const seenTweetIds = new Set<string>();
     const authorMap = new Map<string, {
       username: string;
       name: string;
@@ -41,54 +36,45 @@ export async function runTweetIngest() {
       verified: boolean;
     }>();
 
-    const MAX_PAGES_PER_QUERY = 3;
+    let nextToken: string | undefined;
+    let pagesRead = 0;
+    const MAX_PAGES = 5;
 
-    for (const searchQuery of queries) {
-      let nextToken: string | undefined;
-      let pagesRead = 0;
+    do {
+      const searchParams: Record<string, any> = {
+        "tweet.fields": TWEET_FIELDS.join(","),
+        "user.fields": USER_FIELDS.join(","),
+        expansions: EXPANSIONS.join(","),
+        max_results: maxResults,
+      };
+      if (sinceId) searchParams.since_id = sinceId;
+      if (nextToken) searchParams.next_token = nextToken;
 
-      do {
-        const searchParams: Record<string, any> = {
-          "tweet.fields": TWEET_FIELDS.join(","),
-          "user.fields": USER_FIELDS.join(","),
-          expansions: EXPANSIONS.join(","),
-          max_results: maxResults,
-        };
-        if (sinceId) searchParams.since_id = sinceId;
-        if (nextToken) searchParams.next_token = nextToken;
+      try {
+        const result = await client.v2.search(searchQuery, searchParams);
 
-        try {
-          const result = await client.v2.search(searchQuery, searchParams);
-
-          // Collect authors from includes
-          if (result.includes?.users) {
-            for (const user of result.includes.users) {
-              authorMap.set(user.id, {
-                username: user.username,
-                name: user.name,
-                avatarUrl: user.profile_image_url,
-                followersCount: (user.public_metrics as { followers_count?: number })?.followers_count || 0,
-                verified: !!(user as { verified?: boolean }).verified,
-              });
-            }
+        if (result.includes?.users) {
+          for (const user of result.includes.users) {
+            authorMap.set(user.id, {
+              username: user.username,
+              name: user.name,
+              avatarUrl: user.profile_image_url,
+              followersCount: (user.public_metrics as { followers_count?: number })?.followers_count || 0,
+              verified: !!(user as { verified?: boolean }).verified,
+            });
           }
-
-          const pageTweets = result.data?.data || [];
-          for (const t of pageTweets) {
-            if (!seenTweetIds.has(t.id)) {
-              seenTweetIds.add(t.id);
-              allTweets.push(t);
-            }
-          }
-
-          nextToken = result.meta?.next_token;
-          pagesRead++;
-        } catch (err) {
-          console.error(`Search error for query "${searchQuery}":`, err);
-          break;
         }
-      } while (nextToken && pagesRead < MAX_PAGES_PER_QUERY);
-    }
+
+        const pageTweets = result.data?.data || [];
+        allTweets.push(...pageTweets);
+
+        nextToken = result.meta?.next_token;
+        pagesRead++;
+      } catch (err) {
+        console.error(`Search error:`, err);
+        break;
+      }
+    } while (nextToken && pagesRead < MAX_PAGES);
 
     // Get all bound X user IDs
     const boundAccounts = await prisma.socialAccount.findMany({
@@ -239,11 +225,11 @@ export async function runTweetIngest() {
       data: {
         status: "completed",
         endedAt: new Date(),
-        result: { queries, maxResults, captured, skipped, total: tweets.length },
+        result: { searchQuery, maxResults, captured, skipped, total: tweets.length, pages: pagesRead },
       },
     });
 
-    return { queries, maxResults, captured, skipped, total: tweets.length };
+    return { searchQuery, maxResults, captured, skipped, total: tweets.length, pages: pagesRead };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     await prisma.jobRun.update({

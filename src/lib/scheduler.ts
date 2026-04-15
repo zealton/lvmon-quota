@@ -22,12 +22,14 @@ const tasks: Record<string, ScheduledTask | null> = {
   epochSettle: null,
 };
 
-// In-memory running state
+// In-memory running state + timestamps for stuck detection
 const runningState: Record<string, boolean> = {
   tweetIngest: false,
   tweetScore: false,
   epochSettle: false,
 };
+const runStartedAt: Record<string, number> = {};
+const STUCK_TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
 
 // Config keys in AppConfig
 const CONFIG_KEYS = {
@@ -89,8 +91,21 @@ function minutesToCron(minutes: number): string {
 type JobKey = "tweetIngest" | "tweetScore" | "epochSettle";
 
 async function runJob(jobKey: JobKey) {
-  if (runningState[jobKey]) return;
+  // Check if stuck — force reset if running too long
+  if (runningState[jobKey]) {
+    const elapsed = Date.now() - (runStartedAt[jobKey] || 0);
+    if (elapsed < STUCK_TIMEOUT_MS) return; // genuinely still running
+    console.warn(`[Scheduler] ${jobKey} stuck for ${Math.round(elapsed / 1000)}s — force resetting`);
+    runningState[jobKey] = false;
+    // Mark stuck DB job as failed
+    await prisma.jobRun.updateMany({
+      where: { status: "running", startedAt: { lt: new Date(Date.now() - STUCK_TIMEOUT_MS) } },
+      data: { status: "failed", endedAt: new Date(), error: "Stuck timeout — auto-recovered" },
+    });
+  }
+
   runningState[jobKey] = true;
+  runStartedAt[jobKey] = Date.now();
 
   try {
     if (jobKey === "tweetIngest") {
@@ -107,6 +122,7 @@ async function runJob(jobKey: JobKey) {
     console.error(`Scheduler error [${jobKey}]:`, err);
   } finally {
     runningState[jobKey] = false;
+    delete runStartedAt[jobKey];
   }
 }
 
@@ -227,6 +243,13 @@ export async function setSchedulerJob(
  * Initialize scheduler on app startup — sync all tasks with DB state
  */
 export async function initScheduler() {
+  // Clean up stuck jobs from prior crashes
+  const { count } = await prisma.jobRun.updateMany({
+    where: { status: "running" },
+    data: { status: "failed", endedAt: new Date(), error: "Process restart — auto-recovered" },
+  });
+  if (count > 0) console.log(`[Scheduler] Cleaned up ${count} stuck job(s) from prior run`);
+
   for (const jobKey of ["tweetIngest", "tweetScore", "epochSettle"] as const) {
     await syncTask(jobKey);
     const config = await getJobConfig(jobKey);
