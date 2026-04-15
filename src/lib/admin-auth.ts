@@ -2,7 +2,7 @@ import { auth } from "./auth";
 import { NextResponse } from "next/server";
 
 // Admin usernames whitelist — these users are auto-promoted to admin on login
-export const ADMIN_USERNAMES = ["auuutoo", "Alex_LeverUp"];
+export const ADMIN_USERNAMES = ["auuutoo", "Alex_LeverUp", "rona_leverup"];
 
 export async function requireAdmin() {
   // In development, allow all access
