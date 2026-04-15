@@ -16,6 +16,7 @@ export const TWEET_FIELDS = [
   "referenced_tweets",
   "lang",
   "attachments",
+  "note_tweet",
 ] as const;
 
 export const USER_FIELDS = [

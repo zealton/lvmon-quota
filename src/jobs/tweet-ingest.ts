@@ -76,6 +76,44 @@ export async function runTweetIngest() {
       }
     } while (nextToken && pagesRead < MAX_PAGES);
 
+    // Also fetch mentions timeline to catch long tweets (note_tweet)
+    // where keywords appear beyond the search-indexed 280 chars
+    try {
+      const handleUser = await client.v2.userByUsername(handle);
+      if (handleUser.data?.id) {
+        const mentionParams: Record<string, any> = {
+          "tweet.fields": [...TWEET_FIELDS].join(","),
+          "user.fields": USER_FIELDS.join(","),
+          expansions: EXPANSIONS.join(","),
+          max_results: maxResults,
+        };
+        if (sinceId) mentionParams.since_id = sinceId;
+
+        const mentions = await client.v2.userMentionTimeline(handleUser.data.id, mentionParams);
+        if (mentions.data?.data) {
+          const seenIds = new Set(allTweets.map((t: any) => t.id));
+          for (const t of mentions.data.data) {
+            if (!seenIds.has(t.id)) {
+              allTweets.push(t);
+            }
+          }
+        }
+        if (mentions.includes?.users) {
+          for (const user of mentions.includes.users) {
+            authorMap.set(user.id, {
+              username: user.username,
+              name: user.name,
+              avatarUrl: user.profile_image_url,
+              followersCount: (user.public_metrics as { followers_count?: number })?.followers_count || 0,
+              verified: !!(user as { verified?: boolean }).verified,
+            });
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Mentions timeline error:", err);
+    }
+
     // Get all bound X user IDs
     const boundAccounts = await prisma.socialAccount.findMany({
       where: { provider: "x" },
@@ -101,6 +139,9 @@ export async function runTweetIngest() {
         continue;
       }
 
+      // Use full note_tweet text for long tweets, fallback to regular text
+      const fullText = (tweet as any).note_tweet?.text || tweet.text || "";
+
       const authorId = tweet.author_id || "";
       const authorInfo = authorMap.get(authorId);
       const userId = boundMap.get(authorId) || null;
@@ -125,13 +166,13 @@ export async function runTweetIngest() {
       let status: "captured" | "eligible" | "rejected" = "eligible";
 
       // Apply hard filters
-      const textLower = (tweet.text || "").toLowerCase();
+      const textLower = fullText.toLowerCase();
       const mentionTerms = [`@${handle}`, ...extraKeywords].map((t: string) => t.toLowerCase());
       const hasMention = mentionTerms.some((term: string) => textLower.includes(term));
 
       if (isRetweet || isReply) {
         status = "rejected";
-      } else if (!tweet.text || tweet.text.length < config.min_text_length) {
+      } else if (!fullText || fullText.length < config.min_text_length) {
         status = "rejected";
       } else if (!hasMention) {
         status = "rejected";
@@ -147,7 +188,7 @@ export async function runTweetIngest() {
           authorAvatarUrl: authorInfo?.avatarUrl || null,
           authorFollowers: authorInfo?.followersCount || 0,
           authorVerified: authorInfo?.verified || false,
-          text: tweet.text || "",
+          text: fullText,
           lang: tweet.lang || null,
           conversationId: tweet.conversation_id || null,
           createdAtX: new Date(tweet.created_at || Date.now()),
@@ -180,7 +221,7 @@ export async function runTweetIngest() {
               }
             : undefined;
 
-          const quality = await scoreQuality(tweet.text || "", hasMedia, authorProfile);
+          const quality = await scoreQuality(fullText, hasMedia, authorProfile);
 
           await prisma.tweetScore.create({
             data: {
