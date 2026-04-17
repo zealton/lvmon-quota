@@ -91,7 +91,7 @@ function WalletButton() {
   );
 }
 
-const ADMIN_USERNAMES = ["auuutoo", "Alex_LeverUp", "rona_leverup"];
+const ADMIN_USERNAMES = ["auuutoo", "Alex_LeverUp", "rona_leverup", "0xLilmon"];
 
 export function Header() {
   const { data: session, status } = useSession();
