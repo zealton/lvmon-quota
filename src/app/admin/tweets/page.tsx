@@ -11,27 +11,41 @@ interface AdminTweet {
   status: string;
   authorUsername: string;
   createdAtX: string;
+  capturedAt: string;
   score: { quality: number; engagement: number; trust: number; final: number; riskLevel: string } | null;
 }
 
 export default function AdminTweetsPage() {
   const [tweets, setTweets] = useState<AdminTweet[]>([]);
   const [filter, setFilter] = useState("");
+  const [days, setDays] = useState<number | null>(3);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
 
   const fetchTweets = () => {
-    const params = new URLSearchParams({ page: String(page), limit: "50" });
+    const params = new URLSearchParams({ page: String(page), limit: "100" });
     if (filter) params.set("status", filter);
+    if (days) params.set("days", String(days));
     fetch(`/api/admin/tweets?${params}`)
       .then((r) => r.json())
       .then((data) => {
         setTweets(data.items || []);
         setTotalPages(data.pagination?.totalPages || 1);
+        setTotal(data.pagination?.total || 0);
       });
   };
 
-  useEffect(() => { fetchTweets(); }, [page, filter]);
+  useEffect(() => { fetchTweets(); }, [page, filter, days]);
+
+  const formatTime = (iso: string) => {
+    const d = new Date(iso);
+    const now = Date.now();
+    const diffMin = Math.floor((now - d.getTime()) / 60000);
+    if (diffMin < 60) return `${diffMin}m ago`;
+    if (diffMin < 1440) return `${Math.floor(diffMin / 60)}h ago`;
+    return `${Math.floor(diffMin / 1440)}d ago`;
+  };
 
   const rejectTweet = async (id: string) => {
     const reason = prompt("Rejection reason:");
@@ -51,7 +65,7 @@ export default function AdminTweetsPage() {
         <AdminTabs />
         <h1 className="text-2xl font-bold mb-6">Tweet Moderation</h1>
 
-        <div className="flex gap-2 mb-4">
+        <div className="flex flex-wrap gap-2 mb-3">
           {["", "captured", "eligible", "quality_scored", "scored", "rejected", "settled"].map((s) => (
             <button
               key={s}
@@ -67,6 +81,29 @@ export default function AdminTweetsPage() {
           ))}
         </div>
 
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <span className="text-xs text-text-subtle mr-1">Range:</span>
+          {[
+            { label: "1d", v: 1 },
+            { label: "3d", v: 3 },
+            { label: "7d", v: 7 },
+            { label: "All", v: null },
+          ].map((r) => (
+            <button
+              key={r.label}
+              onClick={() => { setDays(r.v); setPage(1); }}
+              className={`px-3 py-1 text-xs rounded font-medium transition-colors ${
+                days === r.v
+                  ? "bg-accent-long text-white"
+                  : "bg-surface-3 text-text-secondary hover:bg-surface-hover"
+              }`}
+            >
+              {r.label}
+            </button>
+          ))}
+          <span className="text-xs text-text-subtle ml-2">{total} tweets</span>
+        </div>
+
         <div className="overflow-x-auto bg-surface-1 border border-border rounded-md">
           <table className="w-full text-sm">
             <thead>
@@ -74,6 +111,8 @@ export default function AdminTweetsPage() {
                 <th className="text-left py-3 px-4">Author</th>
                 <th className="text-left py-3 px-4">Text</th>
                 <th className="text-left py-3 px-4">Status</th>
+                <th className="text-left py-3 px-4">Posted</th>
+                <th className="text-left py-3 px-4">Captured</th>
                 <th className="text-right py-3 px-4">Score</th>
                 <th className="text-right py-3 px-4">Risk</th>
                 <th className="text-right py-3 px-4">Actions</th>
@@ -82,8 +121,27 @@ export default function AdminTweetsPage() {
             <tbody>
               {tweets.map((t) => (
                 <tr key={t.id} className="border-b border-border hover:bg-surface-hover/50 transition-colors">
-                  <td className="py-3 px-4 font-medium">@{t.authorUsername}</td>
-                  <td className="py-3 px-4 max-w-md truncate text-text-secondary">{t.text}</td>
+                  <td className="py-3 px-4 font-medium whitespace-nowrap">
+                    <a
+                      href={`https://x.com/${t.authorUsername}/status/${t.tweetId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:text-accent-long"
+                    >
+                      @{t.authorUsername}
+                    </a>
+                  </td>
+                  <td className="py-3 px-4 max-w-md truncate text-text-secondary">
+                    <a
+                      href={`https://x.com/${t.authorUsername}/status/${t.tweetId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:text-accent-long hover:underline"
+                      title={t.text}
+                    >
+                      {t.text}
+                    </a>
+                  </td>
                   <td className="py-3 px-4">
                     <span className={`px-2.5 py-0.5 rounded-lg text-xs font-medium ${
                       t.status === "scored" || t.status === "settled" ? "bg-accent-long/10 text-accent-long" :
@@ -93,6 +151,12 @@ export default function AdminTweetsPage() {
                     }`}>
                       {t.status === "quality_scored" ? "quality scored" : t.status}
                     </span>
+                  </td>
+                  <td className="py-3 px-4 text-xs text-text-subtle whitespace-nowrap" title={new Date(t.createdAtX).toLocaleString()}>
+                    {formatTime(t.createdAtX)}
+                  </td>
+                  <td className="py-3 px-4 text-xs text-text-subtle whitespace-nowrap" title={new Date(t.capturedAt).toLocaleString()}>
+                    {formatTime(t.capturedAt)}
                   </td>
                   <td className="py-3 px-4 text-right font-mono">{t.score?.final?.toFixed(1) || "-"}</td>
                   <td className="py-3 px-4 text-right">

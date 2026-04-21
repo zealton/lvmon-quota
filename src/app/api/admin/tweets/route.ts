@@ -9,8 +9,19 @@ export async function GET(req: NextRequest) {
   const page = parseInt(req.nextUrl.searchParams.get("page") || "1");
   const limit = Math.min(parseInt(req.nextUrl.searchParams.get("limit") || "50"), 100);
   const status = req.nextUrl.searchParams.get("status") || undefined;
+  const daysParam = req.nextUrl.searchParams.get("days");
+  const days = daysParam ? parseInt(daysParam) : null;
 
-  const where = status ? { status: status as "captured" | "eligible" | "quality_scored" | "scored" | "rejected" | "settled" } : {};
+  const where: {
+    status?: "captured" | "eligible" | "quality_scored" | "scored" | "rejected" | "settled";
+    capturedAt?: { gte: Date };
+  } = {};
+  if (status) {
+    where.status = status as "captured" | "eligible" | "quality_scored" | "scored" | "rejected" | "settled";
+  }
+  if (days && days > 0) {
+    where.capturedAt = { gte: new Date(Date.now() - days * 24 * 60 * 60 * 1000) };
+  }
 
   const [tweets, total] = await Promise.all([
     prisma.tweet.findMany({
